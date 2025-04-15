@@ -2,6 +2,9 @@
 
 set -xeuo pipefail
 
+MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
+
+
 dnf -y remove \
 	setroubleshoot
 
@@ -38,6 +41,7 @@ dnf config-manager --add-repo "https://copr.fedorainfracloud.org/coprs/ublue-os/
 dnf config-manager --set-disabled "copr:copr.fedorainfracloud.org:ublue-os:packages"
 dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:packages install \
 	-x bluefin-logos \
+	-x bluefin-plymouth \
 	ublue-os-just \
 	ublue-os-luks \
 	ublue-os-signing \
@@ -53,12 +57,12 @@ cp -avf /usr/etc/. /etc
 rm -rvf /usr/etc
 
 dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:packages swap \
-	centos-logos bluefin-logos
+	almalinux-logos bluefin-logos
 
-dnf config-manager --add-repo "https://copr.fedorainfracloud.org/coprs/ublue-os/staging/repo/epel-${MAJOR_VERSION_NUMBER}/ublue-os-staging-epel-$MAJOR_VERSION_NUMBER.repo"
+dnf config-manager --add-repos "https://copr.fedorainfracloud.org/coprs/ublue-os/staging/repo/epel-${MAJOR_VERSION_NUMBER}/ublue-os-staging-epel-$MAJOR_VERSION_NUMBER.repo"
 dnf config-manager --set-disabled "copr:copr.fedorainfracloud.org:ublue-os:staging"
 # FIXME: gsconnect EPEL10 request: https://bugzilla.redhat.com/show_bug.cgi?id=2349097
-dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:staging install \
+dnf -y --enablerepo copr:copr.fedorssssainfracloud.org:ublue-os:staging install \
 	gnome-shell-extension-{search-light,logo-menu,gsconnect}
 
 dnf config-manager --add-repo "https://copr.fedorainfracloud.org/coprs/che/nerd-fonts/repo/centos-stream-${MAJOR_VERSION_NUMBER}/che-nerd-fonts-centos-stream-${MAJOR_VERSION_NUMBER}.repo"

@@ -49,7 +49,7 @@ dnf -y install \
 	-x PackageKit-command-not-found \
 	-x gnome-software-fedora-langpacks \
 	"NetworkManager-adsl" \
-	"centos-backgrounds" \
+	"almalinux-backgrounds" \
 	"gdm" \
 	"gnome-bluetooth" \
 	"gnome-color-manager" \
@@ -79,9 +79,10 @@ dnf -y install \
 	plymouth \
 	plymouth-system-theme \
 	fwupd \
-	systemd-{resolved,container,oomd} \
-	libcamera{,-{v4l2,gstreamer,tools}} \
-	ffmpegthumbnailer
+	ffmpegthumbnailer \
+	#   systemd-{resolved,container,oomd} \
+	#	libcamera{,-{v4l2,gstreamer,tools}} \
+
 
 # This package adds "[systemd] Failed Units: *" to the bashrc startup
 dnf -y remove console-login-helper-messages

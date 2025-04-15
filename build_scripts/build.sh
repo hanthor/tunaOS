@@ -42,8 +42,8 @@ copy_systemfiles_for() {
 }
 
 CUSTOM_NAME="base"
-copy_systemfiles_for ../files
-run_buildscripts_for ..
+# copy_systemfiles_for ../files
+# run_buildscripts_for ..
 CUSTOM_NAME=""
 
 copy_systemfiles_for "$(arch)"
