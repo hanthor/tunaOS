@@ -7,9 +7,9 @@ set -xeuo pipefail
 # This thing slows down downloads A LOT for no reason
 dnf remove -y subscription-manager
 
-dnf -y install centos-release-hyperscale-kernel
-dnf config-manager --set-disabled "centos-hyperscale,centos-hyperscale-kernel"
-dnf --enablerepo="centos-hyperscale" --enablerepo="centos-hyperscale-kernel" -y update kernel
+# dnf -y install centos-release-hyperscale-kernel
+# dnf config-manager --set-disabled "centos-hyperscale,centos-hyperscale-kernel"
+# dnf --enablerepo="centos-hyperscale" --enablerepo="centos-hyperscale-kernel" -y update kernel
 
 # The base images take super long to update, this just updates manually for now
 dnf -y install 'dnf-command(versionlock)'
