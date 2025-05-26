@@ -31,15 +31,14 @@ COPY build_scripts /build_scripts
 #     export RH_ACTIVATION_KEY=$(cat /run/secrets/${RH_ACTIVATION_KEY_SECRET_ID}) && \
 #     set -e && sh /build_scripts/00-register.sh
 
-
+RUN sh /build_scripts/local_build/build-local-pre.sh
 RUN sh /build_scripts/00-workarounds.sh
 RUN sh /build_scripts/10-packages-image-base.sh  
 RUN sh /build_scripts/20-packages.sh  
 RUN sh /build_scripts/26-packages-post.sh  
 RUN sh /build_scripts/40-services.sh  
 RUN sh /build_scripts/90-image-info.sh  
-RUN sh /build_scripts/cleanup.sh
-RUN sh /build_scripts/build-local.sh
+RUN sh /build_scripts/local_build/build-local.sh
 
 # RHEL:
 # # Unregister and final cleanup at the end

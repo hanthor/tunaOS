@@ -404,3 +404,30 @@ lint:
 # Runs shfmt on all Bash scripts
 format:
     /usr/bin/find . -iname "*.sh" -type f -exec shfmt --write "{}" ';'
+
+
+# This Justfile recipe builds a container image using Podman with local Containerfile.
+# Containerfile.local is used for local builds with many layers, allowing for faster iterations and testing.
+build-local $target_image=image_name $tag=default_tag $dx="0" $gdx="0":
+    #!/usr/bin/env bash
+
+    # Get Version
+    ver="${tag}-${centos_version}.$(date +%Y%m%d)"
+
+    BUILD_ARGS=()
+    BUILD_ARGS+=("--build-arg" "MAJOR_VERSION=${centos_version}")
+    BUILD_ARGS+=("--build-arg" "IMAGE_NAME=${image_name}")
+    BUILD_ARGS+=("--build-arg" "IMAGE_VENDOR=${repo_organization}")
+    BUILD_ARGS+=("--build-arg" "ENABLE_DX=${dx}")
+    BUILD_ARGS+=("--build-arg" "ENABLE_GDX=${gdx}")
+    if [[ -z "$(git status -s)" ]]; then
+        BUILD_ARGS+=("--build-arg" "SHA_HEAD_SHORT=$(git rev-parse --short HEAD)")
+    fi
+
+    podman build \
+        "${BUILD_ARGS[@]}" \
+        --pull=newer \
+        --tag "${target_image}:${tag}" \
+        --file Containerfile.local \
+        .
+
