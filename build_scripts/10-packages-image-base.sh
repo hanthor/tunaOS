@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
 set -xeuo pipefail
+MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
 
 # This is the base for a minimal GNOME system on CentOS Stream.
 
 # This thing slows down downloads A LOT for no reason
-dnf remove -y subscription-manager
+# dnf remove -y subscription-manager
 
 # dnf -y install centos-release-hyperscale-kernel
 # dnf config-manager --set-disabled "centos-hyperscale,centos-hyperscale-kernel"
@@ -15,14 +16,14 @@ dnf remove -y subscription-manager
 dnf -y install 'dnf-command(versionlock)'
 dnf versionlock add kernel kernel-devel kernel-devel-matched kernel-core kernel-modules kernel-modules-core kernel-modules-extra kernel-uki-virt
 
-
-dnf -y install 'dnf-command(config-manager)'
+dnf -y install "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${MAJOR_VERSION_NUMBER}.noarch.rpm"
 dnf config-manager --set-enabled crb
-dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm
-
 
 # Multimidia codecs
-dnf -y install @multimedia gstreamer1-plugins-{bad-free,bad-free-libs,good,base} lame{,-libs} libjxl
+dnf config-manager --add-repo=https://negativo17.org/repos/epel-multimedia.repo
+dnf config-manager --set-disabled epel-multimedia
+dnf -y install --enablerepo=epel-multimedia \
+	ffmpeg libavcodec @multimedia gstreamer1-plugins-{bad-free,bad-free-libs,good,base} lame{,-libs} libjxl ffmpegthumbnailer
 
 # `dnf group info Workstation` without GNOME
 dnf group install -y --nobest \
@@ -79,10 +80,8 @@ dnf -y install \
 	plymouth \
 	plymouth-system-theme \
 	fwupd \
-	ffmpegthumbnailer \
-	#   systemd-{resolved,container,oomd} \
-	#	libcamera{,-{v4l2,gstreamer,tools}} \
-
+	systemd-{resolved,container,oomd} \
+	libcamera{,-{v4l2,gstreamer,tools}}
 
 # This package adds "[systemd] Failed Units: *" to the bashrc startup
 dnf -y remove console-login-helper-messages

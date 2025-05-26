@@ -1,0 +1,54 @@
+ARG MAJOR_VERSION="${MAJOR_VERSION:-10}"
+FROM quay.io/almalinuxorg/almalinux-bootc:10-kitten
+
+ARG ENABLE_DX="${ENABLE_DX:-0}"
+ARG ENABLE_GDX="${ENABLE_GDX:-0}"
+ARG IMAGE_NAME="${IMAGE_NAME:-bluefin}"
+ARG IMAGE_VENDOR="${IMAGE_VENDOR:-almalinuxorg}"
+ARG MAJOR_VERSION="${MAJOR_VERSION:-10}"
+ARG SHA_HEAD_SHORT="${SHA_HEAD_SHORT:-deadbeef}"
+
+# RHEL:
+ARG RH_ORG_ID_SECRET_ID="rh_org_id"
+ARG RH_ACTIVATION_KEY_SECRET_ID="rh_activation_key"
+# OR, if using username/password:
+# ARG RH_USERNAME_SECRET_ID="rh_username"
+# ARG RH_PASSWORD_SECRET_ID="rh_password"
+
+COPY system_files /files
+COPY system_files_overrides /overrides
+COPY build_scripts /build_scripts
+
+# RHEL: 
+# # Register at the beginning
+# RUN --mount=type=secret,id=${RH_ORG_ID_SECRET_ID} \
+#     --mount=type=secret,id=${RH_ACTIVATION_KEY_SECRET_ID} \
+#     --mount=type=secret,id=${RH_USERNAME_SECRET_ID} \
+#     --mount=type=secret,id=${RH_PASSWORD_SECRET_ID} \
+#     export RH_USERNAME=$(cat /run/secrets/${RH_USERNAME_SECRET_ID}) && \
+#     export RH_PASSWORD=$(cat /run/secrets/${RH_PASSWORD_SECRET_ID}) && \
+#     export RH_ORG_ID=$(cat /run/secrets/${RH_ORG_ID_SECRET_ID}) && \
+#     export RH_ACTIVATION_KEY=$(cat /run/secrets/${RH_ACTIVATION_KEY_SECRET_ID}) && \
+#     set -e && sh /build_scripts/00-register.sh
+
+
+RUN sh /build_scripts/00-workarounds.sh
+RUN sh /build_scripts/10-packages-image-base.sh  
+RUN sh /build_scripts/20-packages.sh  
+RUN sh /build_scripts/26-packages-post.sh  
+RUN sh /build_scripts/40-services.sh  
+RUN sh /build_scripts/90-image-info.sh  
+RUN sh /build_scripts/cleanup.sh
+RUN sh /build_scripts/build-local.sh
+
+# RHEL:
+# # Unregister and final cleanup at the end
+# RUN set -e && \
+#     sh /build_scripts/99-unregister.sh && \
+#     echo "INFO: Final cleanup of any residual RHSM files and DNF cache..." && \
+#     rm -rf /etc/rhsm/* /var/log/rhsm/* && \
+#     if command -v dnf &> /dev/null; then dnf clean all; fi
+
+# Makes `/opt` writeable by default
+# Needs to be here to make the main image build strict (no /opt there)
+RUN rm -rf /opt && ln -s /var/opt /opt 

@@ -1,6 +1,8 @@
 #!/bin/bash
 
 set -xeuo pipefail
+MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
+
 
 # This is a bucket list. We want to not have anything in this file at all.
 
@@ -13,6 +15,3 @@ set -xeuo pipefail
 # 	-e "s@\(baseos\|appstream\)@&-compose@" \
 # 	/etc/yum.repos.d/compose.repo
 # cat /etc/yum.repos.d/compose.repo
-
-mkdir -p /var/roothome
-chmod 0700 /var/roothome

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
 set -xeuo pipefail
+MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
+
 
 IMAGE_REF="ostree-image-signed:docker://ghcr.io/${IMAGE_VENDOR}/${IMAGE_NAME}"
 IMAGE_INFO="/usr/share/ublue-os/image-info.json"
 IMAGE_FLAVOR="main"
-MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
 
 cat >$IMAGE_INFO <<EOF
 {
@@ -30,7 +31,6 @@ CODE_NAME="Achillobator Giganticus"
 sed -i -f - /usr/lib/os-release <<EOF
 s/^NAME=.*/NAME=\"${IMAGE_PRETTY_NAME}\"/
 s|^VERSION_CODENAME=.*|VERSION_CODENAME=\"${CODE_NAME}\"|
-s/^ID=.*/ID=$(${IMAGE_PRETTY_NAME} | tr '[:upper:]' '[:lower:]' | tr ' ' '_')/
 s/^VARIANT_ID=.*/VARIANT_ID=${IMAGE_NAME}/
 s/^PRETTY_NAME=.*/PRETTY_NAME=\"${IMAGE_PRETTY_NAME}\"/
 s|^HOME_URL=.*|HOME_URL=\"${HOME_URL}\"|

@@ -1,6 +1,8 @@
 #!/bin/bash
 
 set -xeuo pipefail
+MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
+
 
 # Fancy CentOS icon on the fastfetch
 sed -i "s/󰣛//g" /usr/share/ublue-os/fastfetch.jsonc
@@ -23,6 +25,10 @@ rm -rf /usr/share/pixmaps/faces/bluefin
 sed -i "/^show-boxbuddy=.*/d" /etc/dconf/db/distro.d/04-bluefin-logomenu-extension
 sed -i "/^show-boxbuddy=.*/d" /usr/share/glib-2.0/schemas/zz0-bluefin-modifications.gschema.override
 sed -i "/.*io.github.dvlv.boxbuddyrs.*/d" /etc/ublue-os/system-flatpaks.list
+
+# Offline Bluefin documentation
+curl --retry 3 -Lo /tmp/bluefin.pdf https://github.com/ublue-os/bluefin-docs/releases/download/0.1/bluefin.pdf
+install -Dm0644 -t /usr/share/doc/bluefin/ /tmp/bluefin.pdf
 
 # Add Flathub by default
 mkdir -p /etc/flatpak/remotes.d
