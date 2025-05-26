@@ -7,6 +7,7 @@ MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
 # This is the base for a minimal GNOME system on CentOS Stream.
 
 # This thing slows down downloads A LOT for no reason
+# RHEL: we need this
 # dnf remove -y subscription-manager
 
 # dnf -y install centos-release-hyperscale-kernel
@@ -18,13 +19,15 @@ dnf -y install 'dnf-command(versionlock)'
 dnf versionlock add kernel kernel-devel kernel-devel-matched kernel-core kernel-modules kernel-modules-core kernel-modules-extra kernel-uki-virt
 
 dnf -y install "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${MAJOR_VERSION_NUMBER}.noarch.rpm"
-dnf config-manager --set-enabled crb
+# RHEL:
+/usr/bin/crb enable
+# dnf config-manager --set-enabled crb
 
 # Multimidia codecs
 dnf config-manager --add-repo=https://negativo17.org/repos/epel-multimedia.repo
 dnf config-manager --set-disabled epel-multimedia
 dnf -y install --enablerepo=epel-multimedia \
-	ffmpeg libavcodec @multimedia gstreamer1-plugins-{bad-free,bad-free-libs,good,base} lame{,-libs} libjxl ffmpegthumbnailer
+	ffmpeg libavcodec @multimedia gstreamer1-plugins-{bad-free,bad-free-libs,good,base} lame{,-libs} libjxl
 
 # `dnf group info Workstation` without GNOME
 dnf group install -y --nobest \
@@ -51,6 +54,7 @@ dnf -y install \
 	-x PackageKit-command-not-found \
 	-x gnome-software-fedora-langpacks \
 	"NetworkManager-adsl" \
+	"redhat-backgrounds" \
 	"gdm" \
 	"gnome-bluetooth" \
 	"gnome-color-manager" \
