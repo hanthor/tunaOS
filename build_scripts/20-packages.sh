@@ -40,7 +40,10 @@ dnf -y --enablerepo "tailscale-stable" install \
 dnf -y copr enable ublue-os/packages
 dnf -y copr disable ublue-os/packages
 dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:packages swap \
-	almalinux-logos bluefin-logos
+	almalinux-logos bluefin-logos --allowerasing
+
+dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:packages swap \
+	plymouth-theme-spinner bluefin-plymouth --allowerasing
 
 dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:packages install \
 	-x bluefin-logos \
