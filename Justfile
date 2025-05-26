@@ -372,6 +372,50 @@ patch-iso-branding override="0" iso_path="output/bootiso/install.iso":
         mv output/final.iso {{ iso_path }}
     fi
 
+# Builds RHEL image using Organization ID and Activation Key.
+build-rhel-org org_id activation_key:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    TMP_ORG_ID_FILE=$(mktemp)
+    TMP_ACTIVATION_KEY_FILE=$(mktemp)
+    trap 'rm -f "$TMP_ORG_ID_FILE" "$TMP_ACTIVATION_KEY_FILE"' EXIT ERR INT TERM
+
+    echo -n "{{org_id}}" > "$TMP_ORG_ID_FILE"
+    echo -n "{{activation_key}}" > "$TMP_ACTIVATION_KEY_FILE"
+
+    podman build \
+      --secret id=rh_org_id,src="$TMP_ORG_ID_FILE" \
+      --secret id=rh_activation_key,src="$TMP_ACTIVATION_KEY_FILE" \
+      --build-arg "MAJOR_VERSION={{centos_version}}" \
+      --build-arg "IMAGE_NAME={{image_name}}" \
+      --build-arg "IMAGE_VENDOR={{repo_organization}}" \
+      --pull=newer \
+      --tag "{{image_name}}:{{default_tag}}" \
+      .
+
+# Builds RHEL image using Username and Password.
+build-rhel-user username password:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    TMP_USERNAME_FILE=$(mktemp)
+    TMP_PASSWORD_FILE=$(mktemp)
+    trap 'rm -f "$TMP_USERNAME_FILE" "$TMP_PASSWORD_FILE"' EXIT ERR INT TERM
+
+    echo -n "{{username}}" > "$TMP_USERNAME_FILE"
+    echo -n "{{password}}" > "$TMP_PASSWORD_FILE"
+
+    podman build \
+      --secret id=rh_username,src="$TMP_USERNAME_FILE" \
+      --secret id=rh_password,src="$TMP_PASSWORD_FILE" \
+      --build-arg "MAJOR_VERSION={{centos_version}}" \
+      --build-arg "IMAGE_NAME={{image_name}}" \
+      --build-arg "IMAGE_VENDOR={{repo_organization}}" \
+      --pull=newer \
+      --tag "{{image_name}}:{{default_tag}}" \
+      .
+
 # Runs shell check on all Bash scripts
 lint:
     /usr/bin/find . -iname "*.sh" -type f -exec shellcheck "{}" ';'
@@ -379,3 +423,5 @@ lint:
 # Runs shfmt on all Bash scripts
 format:
     /usr/bin/find . -iname "*.sh" -type f -exec shfmt --write "{}" ';'
+
+

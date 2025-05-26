@@ -1,6 +1,8 @@
 #!/bin/bash
 
 set -xeuo pipefail
+MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
+
 
 dnf -y remove \
 	setroubleshoot
@@ -22,8 +24,8 @@ dnf -y install \
 	gum \
 	jetbrains-mono-fonts-all \
 	buildah \
-	btrfs-progs \
-  xhost
+    xhost \
+	#btrfs-progs \
 
 # Everything that depends on external repositories should be after this.
 # Make sure to set them as disabled and enable them only when you are going to use their packages.

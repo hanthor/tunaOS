@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 set -xeuo pipefail
+MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
+
 
 # Image cleanup
 # Specifically called by build.sh

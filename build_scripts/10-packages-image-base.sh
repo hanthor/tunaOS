@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 
 set -xeuo pipefail
+MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
+
 
 # This is the base for a minimal GNOME system on CentOS Stream.
 
 # This thing slows down downloads A LOT for no reason
-dnf remove -y subscription-manager
+# dnf remove -y subscription-manager
 
-dnf -y install centos-release-hyperscale-kernel
-dnf config-manager --set-disabled "centos-hyperscale,centos-hyperscale-kernel"
-dnf --enablerepo="centos-hyperscale" --enablerepo="centos-hyperscale-kernel" -y update kernel
+# dnf -y install centos-release-hyperscale-kernel
+# dnf config-manager --set-disabled "centos-hyperscale,centos-hyperscale-kernel"
+# dnf --enablerepo="centos-hyperscale" --enablerepo="centos-hyperscale-kernel" -y update kernel
 
 # The base images take super long to update, this just updates manually for now
 dnf -y install 'dnf-command(versionlock)'
@@ -49,7 +51,6 @@ dnf -y install \
 	-x PackageKit-command-not-found \
 	-x gnome-software-fedora-langpacks \
 	"NetworkManager-adsl" \
-	"centos-backgrounds" \
 	"gdm" \
 	"gnome-bluetooth" \
 	"gnome-color-manager" \

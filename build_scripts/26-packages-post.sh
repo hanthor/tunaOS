@@ -1,6 +1,8 @@
 #!/bin/bash
 
 set -xeuo pipefail
+MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
+
 
 # Fancy CentOS icon on the fastfetch
 sed -i "s/󰣛//g" /usr/share/ublue-os/fastfetch.jsonc

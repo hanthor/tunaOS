@@ -2,3 +2,10 @@ cosign.key
 output/
 *.raw
 *.qcow2
+
+# RHEL
+rh-username.txt
+rh-password.txt
+my_org.txt
+
+
