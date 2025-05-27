@@ -1,7 +1,7 @@
 export repo_organization := env("GITHUB_REPOSITORY_OWNER", "ublue-os")
 export image_name := env("IMAGE_NAME", "bluefin")
-export centos_version := env("CENTOS_VERSION", "stream10")
-export default_tag := env("DEFAULT_TAG", "lts")
+export centos_version := env("CENTOS_VERSION", "10")
+export default_tag := env("DEFAULT_TAG", "alma10")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
 
 alias build-vm := build-qcow2
@@ -274,13 +274,13 @@ _run-vm $target_image $tag $type $config:
     run_args+=(--pull=newer)
     run_args+=(--publish "127.0.0.1:${port}:8006")
     run_args+=(--env "CPU_CORES=4")
-    run_args+=(--env "RAM_SIZE=8G")
+    run_args+=(--env "RAM_SIZE=3G")
     run_args+=(--env "DISK_SIZE=64G")
     run_args+=(--env "TPM=Y")
     run_args+=(--env "GPU=Y")
     run_args+=(--device=/dev/kvm)
     run_args+=(--volume "${PWD}/${image_file}":"/boot.${type}")
-    run_args+=(docker.io/qemux/qemu-docker)
+    run_args+=(docker.io/qemux/qemu)
 
     # Run the VM and open the browser to connect
     podman run "${run_args[@]}" &
@@ -379,3 +379,38 @@ lint:
 # Runs shfmt on all Bash scripts
 format:
     /usr/bin/find . -iname "*.sh" -type f -exec shfmt --write "{}" ';'
+   
+
+run-bootc-libvirt $target_image=("localhost/" + image_name) $tag=default_tag: (_rootful_load_image target_image tag)
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    mkdir -p "output/localhost"
+
+    # clean up previous builds
+    echo "Cleaning up previous build"
+    sudo rm -rf "output/${tag}.raw" || true
+    mkdir -p "output/localhost"
+
+     # build the disk image
+    truncate -s 20G output/${tag}.raw
+    sudo podman run \
+    --pid=host --network=host --privileged \
+    --security-opt label=type:unconfined_t \
+    -v $(pwd)/output:/output:Z \
+    ${target_image}:${tag} bootc install to-disk --via-loopback --generic-image /output/${tag}.raw
+    # create a new VM in libvirt
+    set +e
+    virsh -c qemu:///system destroy ${target_image}
+    virsh -c qemu:///system undefine --nvram ${target_image}
+    set -e
+    sudo virt-install \
+    --name ${target_image} \
+    --cpu host --vcpus 8 \
+    --memory 8192 --import \
+    --disk $(PWD)/output/${tag}.raw \
+    --os-variant rhel9-unknown
+    # start the VM
+    sudo virsh -c qemu:///system start ${target_image}
+    # connect to the VM using virt-manager
+    sudo virt-manager --connect qemu:///system ${target_image}
