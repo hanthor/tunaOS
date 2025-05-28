@@ -14,7 +14,7 @@ dnf -y install \
 	distrobox \
 	fastfetch \
 	fpaste \
-	gnome-shell-extension-{appindicator,dash-to-dock,blur-my-shell,caffeine} \
+	gnome-shell-extension-{appindicator,dash-to-dock,blur-my-shell} \
 	just \
 	powertop \
 	tuned-ppd \
