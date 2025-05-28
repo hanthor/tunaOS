@@ -12,6 +12,8 @@ on:
   pull_request:
     branches:
       - main
+      - alma
+      - fedora
     paths:
       - '.github/workflows/build-iso.yml'
       - 'iso_files/*'
