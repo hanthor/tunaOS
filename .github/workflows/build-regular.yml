@@ -7,12 +7,12 @@ on:
       - alma
       - rhel
       - fedora
-    pushed:
-      branches:
-        - main
-        - alma
-        - rhel
-        - fedora
+  push:
+    branches:
+      - main
+      - alma
+      - rhel
+      - fedora
   schedule:
     - cron: "0 1 * * TUE" # Every Tuesday at 1am UTC
   merge_group:
