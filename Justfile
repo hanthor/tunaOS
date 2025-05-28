@@ -379,7 +379,6 @@ lint:
 # Runs shfmt on all Bash scripts
 format:
     /usr/bin/find . -iname "*.sh" -type f -exec shfmt --write "{}" ';'
-   
 
 run-bootc-libvirt $target_image=("localhost/" + image_name) $tag=default_tag: (_rootful_load_image target_image tag)
     #!/usr/bin/env bash
