@@ -6,7 +6,7 @@ COPY system_files_overrides /overrides
 COPY build_scripts /build_scripts
 
 ARG MAJOR_VERSION="${MAJOR_VERSION:-c10s}"
-FROM quay.io/almalinuxorg/almalinux-bootc:10-kitten
+FROM ghcr.io/hanthor/almalinux-bootc:${MAJOR_VERSION} as base
 
 ARG ENABLE_DX="${ENABLE_DX:-0}"
 ARG ENABLE_GDX="${ENABLE_GDX:-0}"

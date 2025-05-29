@@ -17,13 +17,13 @@ dnf -y install 'dnf-command(versionlock)'
 dnf versionlock add kernel kernel-devel kernel-devel-matched kernel-core kernel-modules kernel-modules-core kernel-modules-extra kernel-uki-virt
 
 dnf -y install "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${MAJOR_VERSION_NUMBER}.noarch.rpm"
-dnf config-manager --set-enabled crb
+/usr/bin/crb enable
 
 # Multimidia codecs
-dnf config-manager --add-repo=https://negativo17.org/repos/epel-multimedia.repo
-dnf config-manager --set-disabled epel-multimedia
-dnf -y install --enablerepo=epel-multimedia \
-	ffmpeg libavcodec @multimedia gstreamer1-plugins-{bad-free,bad-free-libs,good,base} lame{,-libs} libjxl ffmpegthumbnailer
+# dnf config-manager --add-repo=https://negativo17.org/repos/epel-multimedia.repo
+# dnf config-manager --set-disabled epel-multimedia
+dnf -y install \
+	ffmpeg-free @multimedia gstreamer1-plugins-{bad-free,bad-free-libs,good,base} lame{,-libs}
 
 # `dnf group info Workstation` without GNOME
 dnf group install -y --nobest \

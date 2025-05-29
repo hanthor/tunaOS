@@ -380,36 +380,43 @@ lint:
 format:
     /usr/bin/find . -iname "*.sh" -type f -exec shfmt --write "{}" ';'
 
-run-bootc-libvirt $target_image=("localhost/" + image_name) $tag=default_tag: (_rootful_load_image target_image tag)
+run-bootc-libvirt $target_image=("localhost/" + image_name) $tag=default_tag $image_name=image_name: (_rootful_load_image target_image tag)
     #!/usr/bin/env bash
     set -euo pipefail
 
-    mkdir -p "output/localhost"
+    mkdir -p "output/"
 
     # clean up previous builds
     echo "Cleaning up previous build"
-    sudo rm -rf "output/${tag}.raw" || true
-    mkdir -p "output/localhost"
+    just sudoif rm -rf "output/${image_name}_${tag}.raw" || true
+    mkdir -p "output/"
 
      # build the disk image
-    truncate -s 20G output/${tag}.raw
-    sudo podman run \
+    truncate -s 20G output/${image_name}_${tag}.raw
+    # just sudoif podman run \
+    # --rm --privileged \
+    # -v /var/lib/containers:/var/lib/containers \
+    # quay.io/centos-bootc/centos-bootc:stream10 \
+    # /usr/libexec/bootc-base-imagectl rechunk \
+    # ${target_image}:${tag} ${target_image}:re${tag}
+    just sudoif podman run \
     --pid=host --network=host --privileged \
     --security-opt label=type:unconfined_t \
     -v $(pwd)/output:/output:Z \
-    ${target_image}:${tag} bootc install to-disk --via-loopback --generic-image /output/${tag}.raw
-    # create a new VM in libvirt
-    set +e
-    virsh -c qemu:///system destroy ${target_image}
-    virsh -c qemu:///system undefine --nvram ${target_image}
-    set -e
-    sudo virt-install \
-    --name ${target_image} \
-    --cpu host --vcpus 8 \
-    --memory 8192 --import \
-    --disk $(PWD)/output/${tag}.raw \
-    --os-variant rhel9-unknown
-    # start the VM
-    sudo virsh -c qemu:///system start ${target_image}
-    # connect to the VM using virt-manager
-    sudo virt-manager --connect qemu:///system ${target_image}
+    ${target_image}:${tag} bootc install to-disk --via-loopback --generic-image /output/${image_name}_${tag}.raw
+    QEMU_DISK_QCOW2=$(pwd)/output/${image_name}_${tag}.raw
+    # Run the VM using QEMU
+    echo "Running VM with QEMU using disk: ${QEMU_DISK_QCOW2}"
+    # Ensure the disk file exists
+    if [[ ! -f "${QEMU_DISK_QCOW2}" ]]; then
+        echo "Disk file ${QEMU_DISK_QCOW2} does not exist. Please build the image first."
+        exit 1
+    fi
+    sudo virt-install --os-variant almalinux9 --boot hd \
+        --name "${image_name}-${tag}" \
+        --memory 2048 \
+        --vcpus 2 \
+        --disk path="${QEMU_DISK_QCOW2}",format=raw,bus=scsi,discard=unmap \
+        --network bridge=virbr0,model=virtio \
+        --console pty,target_type=virtio \
+        --noautoconsole

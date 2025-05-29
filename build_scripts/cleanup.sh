@@ -12,9 +12,9 @@ set -xeuo pipefail
 dnf clean all
 
 rm -rf /.gitkeep
-find /var -mindepth 1 -delete
-find /boot -mindepth 1 -delete
-mkdir -p /var /boot
+# find /var -mindepth 1 -delete
+# find /boot -mindepth 1 -delete
+# mkdir -p /var /boot
 
 # Make /usr/local writeable
 ln -s /var/usrlocal /usr/local
@@ -24,4 +24,4 @@ ln -s /var/usrlocal /usr/local
 chmod 644 /usr/share/ublue-os/image-info.json
 
 # FIXME: use --fix option once https://github.com/containers/bootc/pull/1152 is merged
-bootc container lint --fatal-warnings || true
+bootc container lint --fatal-warnings
