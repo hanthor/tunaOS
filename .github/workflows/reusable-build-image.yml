@@ -26,7 +26,12 @@ on:
         description: "The version of CentOS to build the image on"
         required: false
         type: string
-        default: "10"
+        default: "stream10"
+      default-tag:
+        description: "The default tag to use for the image"
+        required: false
+        type: string
+        default: "lts"
       rechunk:
         description: "Rechunk the build"
         required: false
@@ -57,7 +62,7 @@ env:
   IMAGE_NAME: ${{ inputs.image-name }}
   IMAGE_DESC: ${{ inputs.image-desc }}
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
-  DEFAULT_TAG: "alma10"
+  DEFAULT_TAG: ${{ inputs.default-tag }}
   CENTOS_VERSION: ${{ inputs.centos-version }}
   PLATFORMS: ${{ inputs.platforms }}
 
@@ -344,8 +349,8 @@ jobs:
         id: metadata
         with:
           tags: |
-            type=raw,value=${{ env.DEFAULT_TAG }}
-            type=raw,value=${{ env.DEFAULT_TAG}}-{{date 'YYYYMMDD'}}
+            type=raw,value=lts
+            type=raw,value=lts-{{date 'YYYYMMDD'}}
             type=raw,value=${{ env.CENTOS_VERSION }}
             type=raw,value=${{ env.CENTOS_VERSION }}.{{date 'YYYYMMDD'}}
             type=raw,value=${{ env.CENTOS_VERSION_NUMBER }}
