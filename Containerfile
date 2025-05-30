@@ -1,18 +1,16 @@
-ARG MAJOR_VERSION="${MAJOR_VERSION:-10}"
 FROM scratch as context
 
 COPY system_files /files
 COPY system_files_overrides /overrides
 COPY build_scripts /build_scripts
 
-ARG MAJOR_VERSION="${MAJOR_VERSION:-c10s}"
-FROM ghcr.io/hanthor/almalinux-bootc:${MAJOR_VERSION} as base
+FROM ghcr.io/hanthor/almalinux-bootc:10
 
 ARG ENABLE_DX="${ENABLE_DX:-0}"
 ARG ENABLE_GDX="${ENABLE_GDX:-0}"
 ARG IMAGE_NAME="${IMAGE_NAME:-bluefin}"
 ARG IMAGE_VENDOR="${IMAGE_VENDOR:-ublue-os}"
-ARG MAJOR_VERSION="${MAJOR_VERSION:-alma0}"
+ARG MAJOR_VERSION="${MAJOR_VERSION:-10}"
 ARG SHA_HEAD_SHORT="${SHA_HEAD_SHORT:-deadbeef}"
 
 RUN --mount=type=tmpfs,dst=/opt \
