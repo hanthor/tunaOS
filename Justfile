@@ -96,17 +96,44 @@ sudoif command *args:
 #
 
 # Build the image using the specified parameters
-rechunk $target_image=image_name $tag=default_tag:
+rechunk $target_image=image_name $tag=default_tag: (_rootful_load_image target_image tag)
     #!/usr/bin/env bash
-    just sudoif podman pull ${target_image}:${tag} || true
-    just sudoif podman tag ${target_image}:${tag} unchunked${target_image}:${tag} || true
-    just sudoif podman run \
-    --rm --privileged \
-    -v /var/lib/containers:/var/lib/containers \
-    quay.io/centos-bootc/centos-bootc:stream10 \
-    /usr/libexec/bootc-base-imagectl rechunk \
-    unchunked${target_image}:${tag} ${target_image}:${tag}
-    just sudoif podman rmi unchunked${target_image}:${tag} || true
+    set -euo pipefail
+
+    # Try to resolve the image tag using podman inspect
+    set +e
+    resolved_tag=$(podman inspect -t image "${target_image}:${tag}" | jq -r '.[].RepoTags.[0]')
+    return_code=$?
+    set -e
+    if [[ $return_code -eq 0 ]]; then
+        # If the image is found, load it into rootful podman
+        ID=$(just sudoif podman images --filter reference="${target_image}:${tag}" --format "'{{ '{{.ID}}' }}'")
+        if [[ -z "$ID" ]]; then
+            just sudoif podman tag $ID unchunked${target_image}:${tag} || true
+            just sudoif podman run \
+            --rm --privileged \
+            -v /var/lib/containers:/var/lib/containers \
+            quay.io/centos-bootc/centos-bootc:stream10 \
+            /usr/libexec/bootc-base-imagectl rechunk \
+            unchunked${target_image}:${tag} ${target_image}:${tag}
+            just sudoif podman rmi unchunked${target_image}:${tag} || true
+            just _rootful_unload_image ${target_image} ${tag}
+        fi
+    else
+        # If the image is not found, pull it from the repository
+        just sudoif podman pull "${target_image}:${tag}"
+        just sudoif podman tag "${target_image}:${tag}" unchunked${target_image}:${tag} || true
+        just sudoif podman run \
+        --rm --privileged \
+        -v /var/lib/containers:/var/lib/containers \
+        quay.io/centos-bootc/centos-bootc:stream10 \
+        /usr/libexec/bootc-base-imagectl rechunk \
+        unchunked${target_image}:${tag} ${target_image}:${tag}
+        just sudoif podman rmi unchunked${target_image}:${tag} || true
+        just _rootful_unload_image ${target_image} ${tag}
+    fi
+
+    
 
 build $target_image=image_name $tag=default_tag $dx="0" $gdx="0":
     #!/usr/bin/env bash
@@ -177,6 +204,38 @@ _rootful_load_image $target_image=image_name $tag=default_tag:
         just sudoif podman pull "${target_image}:${tag}"
     fi
 
+
+
+_rootful_unload_image $target_image=image_name $tag=default_tag:
+    #!/usr/bin/env bash
+    set -eoux pipefail
+
+    # Check if already running as root or under sudo
+    if [[ -n "${SUDO_USER:-}" || "${UID}" -eq "0" ]]; then
+        echo "Already root or running under sudo, no need to load image from user podman."
+        exit 0
+    fi
+
+    # Try to resolve the image tag using podman inspect
+    set +e
+    resolved_tag=$(just sudoif podman inspect -t image "${target_image}:${tag}" | jq -r '.[].RepoTags.[0]')
+    return_code=$?
+    set -e
+
+    if [[ $return_code -eq 0 ]]; then
+        # If the image is found, load it into rootful podman
+        ID=$(podman images --filter reference="${target_image}:${tag}" --format "'{{ '{{.ID}}' }}'")
+        if [[ -z "$ID" ]]; then
+            # If the image ID is not found, copy the image from user podman to root podman
+            COPYTMP=$(mktemp -p "${PWD}" -d -t _build_podman_scp.XXXXXXXXXX)
+            just sudoif TMPDIR=${COPYTMP} podman image scp root@localhost::"${target_image}:${tag}" ${UID}@localhost::"${target_image}:${tag}"
+            rm -rf "${COPYTMP}"
+        fi
+    else
+        # If the image is not found, pull it from the repository
+        podman pull "${target_image}:${tag}"
+    fi
+
 # Build a bootc bootable image using Bootc Image Builder (BIB)
 # Converts a container image to a bootable image
 # Parameters:
@@ -201,10 +260,6 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
 
     args="--type ${type} "
     args+="--use-librepo=True"
-
-    if [[ $target_image == localhost/* ]]; then
-      args+=" --local"
-    fi
 
     sudo podman run \
       --rm \

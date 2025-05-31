@@ -79,6 +79,10 @@ dnf -y copr disable trixieua/morewaita-icon-theme
 dnf -y --enablerepo "copr:copr.fedorainfracloud.org:trixieua:morewaita-icon-theme" install \
 	morewaita-icon-theme
 
+
+dnf -y copr enable @centoshyperscale/c10s-gnome-48 
+dnf -y update
+
 # This is required so homebrew works indefinitely.
 # Symlinking it makes it so whenever another GCC version gets released it will break if the user has updated it without-
 # the homebrew package getting updated through our builds.
