@@ -4,7 +4,6 @@ set -xeuo pipefail
 
 # This is the base for a minimal GNOME system on CentOS Stream.
 
-
 # This thing slows down downloads A LOT for no reason
 # dnf remove -y subscription-manager
 
@@ -12,40 +11,35 @@ set -xeuo pipefail
 # dnf config-manager --set-disabled "centos-hyperscale,centos-hyperscale-kernel"
 # dnf --enablerepo="centos-hyperscale" --enablerepo="centos-hyperscale-kernel" -y update kernel
 
+# The base images take super long to update, this just updates manually for now
 dnf -y install 'dnf-command(versionlock)'
 dnf versionlock add kernel kernel-devel kernel-devel-matched kernel-core kernel-modules kernel-modules-core kernel-modules-extra kernel-uki-virt
 
-# dnf -y install epel-release
-# dnf config-manager --set-enabled crb
-# dnf -y install "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${MAJOR_VERSION_NUMBER}.noarch.rpm"
-# dnf config-manager --set-enabled crb
+dnf -y install "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${MAJOR_VERSION_NUMBER}.noarch.rpm"
+dnf config-manager --set-enabled crb
 
 # Multimidia codecs
-# dnf config-manager --add-repo=https://negativo17.org/repos/epel-multimedia.repo
-# dnf config-manager --set-disabled epel-multimedia
-dnf -y install \
-	ffmpeg @multimedia gstreamer1-plugins-{bad-free,bad-free-libs,good,base} lame{,-libs} libjxl ffmpegthumbnailer
+dnf config-manager --add-repo=https://negativo17.org/repos/epel-multimedia.repo
+dnf config-manager --set-disabled epel-multimedia
+dnf -y install --enablerepo=epel-multimedia \
+	ffmpeg libavcodec @multimedia gstreamer1-plugins-{bad-free,bad-free-libs,good,base} lame{,-libs} libjxl ffmpegthumbnailer
 
-# # `dnf group info Workstation` without GNOME
-# dnf group install -y --nobest \
-# 	-x rsyslog* \
-# 	-x cockpit \
-# 	-x cronie* \
-# 	-x crontabs \
-# 	-x PackageKit \
-# 	-x PackageKit-command-not-found \
-# 	"Common NetworkManager submodules" \
-# 	"Core" \
-# 	"Fonts" \
-# 	"Guest Desktop Agents" \
-# 	"Hardware Support" \
-# 	"Printing Client" \
-# 	"Standard" \
-# 	"Workstation product core"
+dnf swap -y coreutils-single coreutils
 
+dnf -y copr enable @centoshyperscale/c10s-gnome-48 
 
-dnf -y group install \
-	workstation-product-environment
+# `dnf group info Workstation` without GNOME
+dnf group install -y --nobest \
+	-x PackageKit \
+	-x PackageKit-command-not-found \
+	"Common NetworkManager submodules" \
+	"Core" \
+	"Fonts" \
+	"Guest Desktop Agents" \
+	"Hardware Support" \
+	"Printing Client" \
+	"Standard" \
+	"Workstation product core"
 
 # Minimal GNOME group. ("Multimedia" adds most of the packages from the GNOME group. This should clear those up too.)
 # In order to reproduce this, get the packages with `dnf group info GNOME`, install them manually with dnf install and see all the packages that are already installed.
@@ -56,7 +50,6 @@ dnf -y install \
 	-x gnome-software-fedora-langpacks \
 	"NetworkManager-adsl" \
 	"gdm" \
-	"f42-backgrounds-gnome" \
 	"gnome-bluetooth" \
 	"gnome-color-manager" \
 	"gnome-control-center" \
@@ -85,7 +78,7 @@ dnf -y install \
 	plymouth \
 	plymouth-system-theme \
 	fwupd \
-	systemd-{resolved,container} \
+	systemd-{resolved,container,oomd} \
 	libcamera{,-{v4l2,gstreamer,tools}}
 
 # This package adds "[systemd] Failed Units: *" to the bashrc startup
