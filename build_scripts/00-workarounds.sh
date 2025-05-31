@@ -13,7 +13,3 @@ set -xeuo pipefail
 # 	-e "s@\(baseos\|appstream\)@&-compose@" \
 # 	/etc/yum.repos.d/compose.repo
 # cat /etc/yum.repos.d/compose.repo
-
-
-mkdir -p /var/roothome
-chmod 0700 /var/roothome
