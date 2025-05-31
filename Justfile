@@ -100,40 +100,80 @@ rechunk $target_image=image_name $tag=default_tag: (_rootful_load_image target_i
     #!/usr/bin/env bash
     set -euo pipefail
 
-    # Try to resolve the image tag using podman inspect
-    set +e
-    resolved_tag=$(podman inspect -t image "${target_image}:${tag}" | jq -r '.[].RepoTags.[0]')
-    return_code=$?
-    set -e
-    if [[ $return_code -eq 0 ]]; then
-        # If the image is found, load it into rootful podman
-        ID=$(just sudoif podman images --filter reference="${target_image}:${tag}" --format "'{{ '{{.ID}}' }}'")
-        if [[ -z "$ID" ]]; then
-            just sudoif podman tag $ID unchunked${target_image}:${tag} || true
-            just sudoif podman run \
-            --rm --privileged \
-            -v /var/lib/containers:/var/lib/containers \
-            quay.io/centos-bootc/centos-bootc:stream10 \
-            /usr/libexec/bootc-base-imagectl rechunk \
-            unchunked${target_image}:${tag} ${target_image}:${tag}
-            just sudoif podman rmi unchunked${target_image}:${tag} || true
-            just _rootful_unload_image ${target_image} ${tag}
-        fi
+    full_image_ref_input="${target_image}:${tag}"
+    image_id=""
+    actual_image_ref="" 
+
+    echo "INFO: Checking for rootful image: ${full_image_ref_input}..."
+    inspect_output=$(just sudoif podman inspect -t image "${full_image_ref_input}" 2>/dev/null)
+    if [[ $? -eq 0 && -n "$inspect_output" ]]; then
+        echo "INFO: Found rootful image as: ${full_image_ref_input}"
+        image_id=$(echo "$inspect_output" | jq -r '.[0].Id') # Get the specific ID
+        actual_image_ref="${full_image_ref_input}"
     else
-        # If the image is not found, pull it from the repository
-        just sudoif podman pull "${target_image}:${tag}"
-        just sudoif podman tag "${target_image}:${tag}" unchunked${target_image}:${tag} || true
-        just sudoif podman run \
-        --rm --privileged \
-        -v /var/lib/containers:/var/lib/containers \
-        quay.io/centos-bootc/centos-bootc:stream10 \
-        /usr/libexec/bootc-base-imagectl rechunk \
-        unchunked${target_image}:${tag} ${target_image}:${tag}
-        just sudoif podman rmi unchunked${target_image}:${tag} || true
-        just _rootful_unload_image ${target_image} ${tag}
+        if [[ "${target_image}" != */* ]]; then
+            local_prefixed_ref="localhost/${target_image}:${tag}"
+            echo "INFO: Checking for rootful image: ${local_prefixed_ref}..."
+            inspect_output_localhost=$(just sudoif podman inspect -t image "${local_prefixed_ref}" 2>/dev/null)
+            if [[ $? -eq 0 && -n "$inspect_output_localhost" ]]; then
+                echo "INFO: Found rootful image as: ${local_prefixed_ref}"
+                image_id=$(echo "$inspect_output_localhost" | jq -r '.[0].Id')
+                actual_image_ref="${local_prefixed_ref}"
+            fi
+        fi
     fi
 
-    
+    if [[ -z "$image_id" ]]; then
+        echo "INFO: Image not found locally. Attempting to pull rootful image: ${full_image_ref_input}..."
+        if just sudoif podman pull "${full_image_ref_input}"; then
+            echo "INFO: Successfully pulled rootful image: ${full_image_ref_input}"
+            inspect_output_pulled=$(just sudoif podman inspect -t image "${full_image_ref_input}")
+            if [[ $? -eq 0 && -n "$inspect_output_pulled" ]]; then
+                image_id=$(echo "$inspect_output_pulled" | jq -r '.[0].Id')
+                actual_image_ref="${full_image_ref_input}"
+            else
+                echo "ERROR: Pulled image ${full_image_ref_input} but could not inspect it afterwards."
+                exit 1
+            fi
+        else
+            echo "ERROR: Failed to find or pull rootful image: ${full_image_ref_input}"
+            exit 1
+        fi
+    fi
+
+    if [[ -z "$image_id" ]]; then
+        echo "ERROR: Image ${full_image_ref_input} could not be reliably found or pulled into rootful storage."
+        exit 1
+    fi
+
+
+    temp_tag_name_part="unchunked-${target_image}:${tag}"  
+    fully_qualified_temp_tag="localhost/${temp_tag_name_part}"
+
+    just sudoif podman rmi "${fully_qualified_temp_tag}" >/dev/null 2>&1 || true
+
+    if ! just sudoif podman tag "${actual_image_ref}" "${fully_qualified_temp_tag}"; then
+        echo "ERROR: Failed to tag ${actual_image_ref} as ${fully_qualified_temp_tag}. Aborting."
+        exit 1
+    fi
+
+    if ! just sudoif podman run \
+        --rm --privileged --security-opt label=disable \
+        -v /var/lib/containers:/var/lib/containers:Z \
+        quay.io/centos-bootc/centos-bootc:stream10 \
+        /usr/libexec/bootc-base-imagectl rechunk \
+        "${fully_qualified_temp_tag}" "${actual_image_ref}"; then
+        echo "INFO: removing temporary tag ${fully_qualified_temp_tag}."
+        just sudoif podman rmi "${fully_qualified_temp_tag}" >/dev/null 2>&1 || true
+        exit 1
+    fi
+
+
+    just sudoif podman rmi "${fully_qualified_temp_tag}" >/dev/null 2>&1 || true
+    echo "INFO: Successfully rechunked image ${actual_image_ref}"
+    just sudoif podman inspect "${actual_image_ref}" --format "'{{ '{{.ID}}' }}'" | xargs -I {} echo "INFO: Image ID: {}"
+    # Unload an image from rootful podman
+    just _rootful_unload_image ${target_image} ${tag}
 
 build $target_image=image_name $tag=default_tag $dx="0" $gdx="0":
     #!/usr/bin/env bash
@@ -176,13 +216,20 @@ build $target_image=image_name $tag=default_tag $dx="0" $gdx="0":
 
 _rootful_load_image $target_image=image_name $tag=default_tag:
     #!/usr/bin/env bash
-    set -eoux pipefail
+    set -eou pipefail
 
     # Check if already running as root or under sudo
     if [[ -n "${SUDO_USER:-}" || "${UID}" -eq "0" ]]; then
         echo "Already root or running under sudo, no need to load image from user podman."
         exit 0
     fi
+    function copy_image_from_user_to_root() {
+        local target_image="$1"
+        local tag="$2"
+        COPYTMP=$(mktemp -p "${PWD}" -d -t _build_podman_scp.XXXXXXXXXX)
+        just sudoif TMPDIR=${COPYTMP} podman image scp ${UID}@localhost::"${target_image}:${tag}" root@localhost::"${target_image}:${tag}"
+        rm -rf "${COPYTMP}"
+    }
 
     # Try to resolve the image tag using podman inspect
     set +e
@@ -192,23 +239,46 @@ _rootful_load_image $target_image=image_name $tag=default_tag:
 
     if [[ $return_code -eq 0 ]]; then
         # If the image is found, load it into rootful podman
-        ID=$(just sudoif podman images --filter reference="${target_image}:${tag}" --format "'{{ '{{.ID}}' }}'")
-        if [[ -z "$ID" ]]; then
-            # If the image ID is not found, copy the image from user podman to root podman
-            COPYTMP=$(mktemp -p "${PWD}" -d -t _build_podman_scp.XXXXXXXXXX)
-            just sudoif TMPDIR=${COPYTMP} podman image scp ${UID}@localhost::"${target_image}:${tag}" root@localhost::"${target_image}:${tag}"
-            rm -rf "${COPYTMP}"
+        SID=$(podman images --filter reference="${target_image}:${tag}" --format "'{{ '{{.ID}}' }}'")
+        DID=$(just sudoif podman images --filter reference="${target_image}:${tag}" --format "'{{ '{{.ID}}' }}'")
+        echo "Image found in user podman: ${SID}"
+        echo "Image found in root podman: ${DID}"
+        if [[ -z "$SID" ]]; then
+            echo "Image not found in user podman, skipping load."
+            exit 0
+        fi
+        if [[ "$SID" == "$DID" ]]; then
+            echo "Image IDs match, skipping copy."
+            exit 0
+        fi
+        if [[ "$SID" != "$DID" ]]; then
+            echo "Image IDs do not match, deleting ${DID} and copying image from user podman to root podman..."
+            just sudoif podman rmi "${target_image}:${tag}" || true
+            copy_image_from_user_to_root "$target_image" "$tag"
+        fi
+
+        if [[ -z "$DID" ]]; then
+           copy_image_from_user_to_root "$target_image" "$tag"
         fi
     else
         # If the image is not found, pull it from the repository
+        echo "Image not found locally, pulling from repository..."
         just sudoif podman pull "${target_image}:${tag}"
     fi
 
-
-
 _rootful_unload_image $target_image=image_name $tag=default_tag:
     #!/usr/bin/env bash
-    set -eoux pipefail
+    set -eou pipefail
+
+
+    function copy_image_from_root_to_user() {
+        local target_image="$1"
+        local tag="$2"
+        COPYTMP=$(mktemp -p "${PWD}" -d -t _build_podman_scp.XXXXXXXXXX)
+        just sudoif TMPDIR=${COPYTMP} podman image scp root@localhost::"${target_image}:${tag}" ${UID}@localhost::"${target_image}:${tag}"
+        rm -rf "${COPYTMP}"
+    }
+
 
     # Check if already running as root or under sudo
     if [[ -n "${SUDO_USER:-}" || "${UID}" -eq "0" ]]; then
@@ -224,12 +294,29 @@ _rootful_unload_image $target_image=image_name $tag=default_tag:
 
     if [[ $return_code -eq 0 ]]; then
         # If the image is found, load it into rootful podman
-        ID=$(podman images --filter reference="${target_image}:${tag}" --format "'{{ '{{.ID}}' }}'")
-        if [[ -z "$ID" ]]; then
+        SID=$(just sudoif podman images --filter reference="${target_image}:${tag}" --format "'{{ '{{.ID}}' }}'")
+        DID=$(podman images --filter reference="${target_image}:${tag}" --format "'{{ '{{.ID}}' }}'")
+        echo "Image found in root podman: ${SID}"
+        echo "Image found in user podman: ${DID}"
+        # compare the image IDs if thry are the same skip the copy if they are not the same remove the image from user podman
+        if [[ -z "$SID" ]]; then
+            echo "Image not found in root podman, skipping unload."
+            exit 0
+        fi
+        if [[ "$SID" == "$DID" ]]; then
+            echo "Image IDs match, skipping copy."
+            exit 0
+        fi
+        # if the image IDs do not match, copy the image from root podman to user podman
+        if [[ "$SID" != "$DID" ]]; then
+            echo "Image IDs do not match, deleting ${DID} and copying image from root podman to user podman..."
+            podman rmi "${target_image}:${tag}" || true
+            copy_image_from_root_to_user "$target_image" "$tag"
+        fi
+        if [[ -z "$DID" ]]; then
             # If the image ID is not found, copy the image from user podman to root podman
-            COPYTMP=$(mktemp -p "${PWD}" -d -t _build_podman_scp.XXXXXXXXXX)
-            just sudoif TMPDIR=${COPYTMP} podman image scp root@localhost::"${target_image}:${tag}" ${UID}@localhost::"${target_image}:${tag}"
-            rm -rf "${COPYTMP}"
+            copy_image_from_root_to_user "$target_image" "$tag"
+
         fi
     else
         # If the image is not found, pull it from the repository

@@ -6,9 +6,9 @@ set -x
 dnf config-manager --set-enabled crb
 
 dnf install -y \
-  anaconda \
-  anaconda-install-env-deps \
-  anaconda-live
+	anaconda \
+	anaconda-install-env-deps \
+	anaconda-live
 
 systemctl disable brew-setup.service
 systemctl disable uupd.timer
