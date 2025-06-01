@@ -79,6 +79,14 @@ dnf -y copr disable trixieua/morewaita-icon-theme
 dnf -y --enablerepo "copr:copr.fedorainfracloud.org:trixieua:morewaita-icon-theme" install \
 	morewaita-icon-theme
 
+# GNOME 48: allow for Bazaar to be installed
+sudo dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:staging install \
+bazaar
+
+# GNOME 48: EPEL version of blur-my-shell is incompatible
+sudo dnf -y remove gnome-shell-extension-blur-my-shell
+
+sudo dnf -y remove 
 # This is required so homebrew works indefinitely.
 # Symlinking it makes it so whenever another GCC version gets released it will break if the user has updated it without-
 # the homebrew package getting updated through our builds.
