@@ -14,11 +14,6 @@ HARDCODED_RPM_MONTH="12"
 sed -i "/picture-uri/ s/${HARDCODED_RPM_MONTH}/$(date +%m)/" "/usr/share/glib-2.0/schemas/zz0-bluefin-modifications.gschema.override"
 glib-compile-schemas /usr/share/glib-2.0/schemas
 
-# Required for bluefin faces to work without conflicting with a ton of packages
-rm -f /usr/share/pixmaps/faces/* || echo "Expected directory deletion to fail"
-mv /usr/share/pixmaps/faces/bluefin/* /usr/share/pixmaps/faces
-rm -rf /usr/share/pixmaps/faces/bluefin
-
 # This should only be enabled on `-dx`
 sed -i "/^show-boxbuddy=.*/d" /etc/dconf/db/distro.d/04-bluefin-logomenu-extension
 sed -i "/^show-boxbuddy=.*/d" /usr/share/glib-2.0/schemas/zz0-bluefin-modifications.gschema.override
