@@ -86,6 +86,11 @@ bazaar
 # GNOME 48: EPEL version of blur-my-shell is incompatible
 dnf -y remove gnome-shell-extension-blur-my-shell
  
+# GNOME 48: force update xdg-desktop-portal
+dnf -y install \
+	xdg-desktop-portal \
+	xdg-desktop-portal-gnome
+	 
 # This is required so homebrew works indefinitely.
 # Symlinking it makes it so whenever another GCC version gets released it will break if the user has updated it without-
 # the homebrew package getting updated through our builds.
