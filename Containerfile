@@ -4,7 +4,7 @@ COPY system_files /files
 COPY system_files_overrides /overrides
 COPY build_scripts /build_scripts
 
-FROM ghcr.io/hanthor/almalinux-bootc:10
+FROM quay.io/almalinuxorg/almalinux-bootc:10
 
 ARG ENABLE_DX="${ENABLE_DX:-0}"
 ARG ENABLE_GDX="${ENABLE_GDX:-0}"
