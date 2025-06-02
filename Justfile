@@ -1,7 +1,7 @@
 export repo_organization := env("GITHUB_REPOSITORY_OWNER", "ublue-os")
 export image_name := env("IMAGE_NAME", "bluefin")
 export centos_version := env("CENTOS_VERSION", "10")
-export default_tag := env("DEFAULT_TAG", "alma10")
+export default_tag := env("DEFAULT_TAG", "a10")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
 
 alias build-vm := build-qcow2
@@ -96,6 +96,18 @@ sudoif command *args:
 #
 
 # Build the image using the specified parameters
+rechunk $target_image=image_name $tag=default_tag:
+    #!/usr/bin/env bash
+    just sudoif podman pull ${target_image}:${tag} || true
+    just sudoif podman tag ${target_image}:${tag} unchunked${target_image}:${tag} || true
+    just sudoif podman run \
+    --rm --privileged \
+    -v /var/lib/containers:/var/lib/containers \
+    quay.io/centos-bootc/centos-bootc:stream10 \
+    /usr/libexec/bootc-base-imagectl rechunk \
+    unchunked${target_image}:${tag} ${target_image}:${tag}
+    just sudoif podman rmi unchunked${target_image}:${tag} || true
+
 build $target_image=image_name $tag=default_tag $dx="0" $gdx="0":
     #!/usr/bin/env bash
 
