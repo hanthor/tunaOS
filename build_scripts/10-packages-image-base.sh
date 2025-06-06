@@ -19,6 +19,8 @@ dnf versionlock add kernel kernel-devel kernel-devel-matched kernel-core kernel-
 dnf -y install "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${MAJOR_VERSION_NUMBER}.noarch.rpm"
 /usr/bin/crb enable
 
+dnf swap -y coreutils-single coreutils
+
 # Multimidia codecs
 # dnf config-manager --add-repo=https://negativo17.org/repos/epel-multimedia.repo
 # dnf config-manager --set-disabled epel-multimedia
@@ -28,7 +30,6 @@ dnf -y install \
 # `dnf group info Workstation` without GNOME
 dnf group install -y --nobest \
 	-x rsyslog* \
-	-x cockpit \
 	-x cronie* \
 	-x crontabs \
 	-x PackageKit \
@@ -40,7 +41,9 @@ dnf group install -y --nobest \
 	"Hardware Support" \
 	"Printing Client" \
 	"Standard" \
-	"Workstation product core"
+	"Workstation product core" \
+	"Server with GUI" \
+	"Virtualization Host"
 
 # Minimal GNOME group. ("Multimedia" adds most of the packages from the GNOME group. This should clear those up too.)
 # In order to reproduce this, get the packages with `dnf group info GNOME`, install them manually with dnf install and see all the packages that are already installed.
