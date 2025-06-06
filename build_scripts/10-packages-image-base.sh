@@ -44,7 +44,6 @@ dnf -y install \
 	"gnome-bluetooth" \
 	"gnome-color-manager" \
 	"gnome-control-center" \
-	"gnome-initial-setup" \
 	"gnome-remote-desktop" \
 	"gnome-session-wayland-session" \
 	"gnome-settings-daemon" \
