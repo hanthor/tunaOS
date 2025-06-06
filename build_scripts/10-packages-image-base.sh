@@ -27,21 +27,7 @@ dnf swap -y coreutils-single coreutils
 dnf -y install \
 	ffmpeg-free @multimedia gstreamer1-plugins-{bad-free,bad-free-libs,good,base} lame{,-libs}
 
-# `dnf group info Workstation` without GNOME
 dnf group install -y --nobest \
-	-x rsyslog* \
-	-x cronie* \
-	-x crontabs \
-	-x PackageKit \
-	-x PackageKit-command-not-found \
-	"Common NetworkManager submodules" \
-	"Core" \
-	"Fonts" \
-	"Guest Desktop Agents" \
-	"Hardware Support" \
-	"Printing Client" \
-	"Standard" \
-	"Workstation product core" \
 	"Server with GUI" \
 	"Virtualization Host"
 

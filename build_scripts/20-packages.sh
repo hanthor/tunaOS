@@ -24,8 +24,13 @@ dnf -y install \
 	gum \
 	jetbrains-mono-fonts-all \
 	buildah \
-	btrfs-progs \
-  xhost
+    xhost \
+	cockpit \
+	cockpit-machines \
+	cockpit-ws \
+	cockpit-files \
+	cockpit-podman \
+	cockpit-image-builder
 
 # Everything that depends on external repositories should be after this.
 # Make sure to set them as disabled and enable them only when you are going to use their packages.
