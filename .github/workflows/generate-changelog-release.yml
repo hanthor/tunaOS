@@ -6,7 +6,7 @@ on:
       stream_name:
         description: "Release Tag (e.g. stream10, latest)"
         type: string
-        default: "lts"
+        default: "a10-server"
         required: false
   workflow_dispatch:
     inputs:
@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["lts"]
+        version: ["a10-server"]
     steps:
       - name: Checkout last 500 commits (for <commits> to work)
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4

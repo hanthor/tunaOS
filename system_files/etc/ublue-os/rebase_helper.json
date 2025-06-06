@@ -1,6 +1,6 @@
 {
 	"dx-helper-enabled": true,
 	"image-base-name": "bluefin",
-	"available-tags": ["alma10", "lts"],
+	"available-tags": ["a10", "a10-server"],
 	"image-date-separator": "-"
 }

@@ -1,7 +1,7 @@
 export repo_organization := env("GITHUB_REPOSITORY_OWNER", "ublue-os")
 export image_name := env("IMAGE_NAME", "bluefin")
 export centos_version := env("CENTOS_VERSION", "10")
-export default_tag := env("DEFAULT_TAG", "alma10")
+export default_tag := env("DEFAULT_TAG", "a10-server")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
 
 alias build-vm := build-qcow2
@@ -92,7 +92,7 @@ sudoif command *args:
 # Example usage:
 #   just build bluefin lts 1 0
 #
-# This will build an image 'bluefin:lts' with DX and GDX enabled.
+# This will build an image 'bluefin:a10-server' with DX and GDX enabled.
 #
 
 # Build the image using the specified parameters

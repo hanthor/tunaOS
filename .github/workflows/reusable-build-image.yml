@@ -31,7 +31,7 @@ on:
         description: "The default tag to use for the image"
         required: false
         type: string
-        default: "lts"
+        default: "a10-server"
       rechunk:
         description: "Rechunk the build"
         required: false
