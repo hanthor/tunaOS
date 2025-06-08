@@ -405,7 +405,7 @@ jobs:
         env:
           MANIFEST: ${{ steps.create-manifest.outputs.MANIFEST }}
           DIGESTS_JSON: ${{ steps.load-outputs.outputs.DIGESTS_JSON }}
-          ANNOTATIONS: ${{ steps.metadata.outputs.annotations }} # Use annotations, not labels
+          ANNOTATIONS: ${{ steps.metadata.outputs.annotations }}
           PLATFORMS: "${{ inputs.platforms }}"
         run: |
           # Add each platform-specific image to the manifest
@@ -423,10 +423,10 @@ jobs:
           
           # Apply the OCI annotations to the manifest list
           while IFS= read -r annotation; do
-            # The metadata action prefixes annotations with "manifest:", which we must remove.
             clean_annotation="${annotation#manifest:}"
             echo "Applying annotation: ${clean_annotation}"
-            podman manifest annotate --annotation "${clean_annotation}" "${MANIFEST}"
+            # CORRECTED SYNTAX: Provide manifest and annotation as two arguments
+            podman manifest annotate "${MANIFEST}" "${clean_annotation}"
           done <<< "${ANNOTATIONS}"
 
       - name: Login to GitHub Container Registry
