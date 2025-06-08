@@ -287,7 +287,7 @@ jobs:
           path: |
             /tmp/outputs/digests/*.txt
 
-   manifest:
+  manifest:
     name: Create ${{ inputs.image-name }}:${{ inputs.major-version }} Manifest
     runs-on: ubuntu-latest
     if: always()
