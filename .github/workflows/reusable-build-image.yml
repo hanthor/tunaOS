@@ -405,11 +405,11 @@ jobs:
         env:
           MANIFEST: ${{ steps.create-manifest.outputs.MANIFEST }}
           DIGESTS_JSON: ${{ steps.load-outputs.outputs.DIGESTS_JSON }}
-          LABELS: ${{ steps.metadata.outputs.labels }}
+          ANNOTATIONS: ${{ steps.metadata.outputs.annotations }} # Use annotations, not labels
           PLATFORMS: "${{ inputs.platforms }}"
         run: |
+          # Add each platform-specific image to the manifest
           DIGESTS=$(echo "$DIGESTS_JSON" | jq -c '.')
-          # turn the comma separated string into a list
           platforms=()
           IFS=',' read -r -a platforms <<< "${PLATFORMS}"
           for platform in ${platforms[@]}; do
@@ -417,13 +417,17 @@ jobs:
             echo "Adding ${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest} for ${platform}"
             podman manifest add "${MANIFEST}" "${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest}" --arch "${platform}"
           done
-
-          # Apply the labels to the manifest (separated by newlines)
-          while IFS= read -r label; do
-            echo "Applying label ${label} to manifest"
-            # The --index flag has been removed from the following line
-            podman manifest annotate --annotation "$label" "${MANIFEST}"
-          done <<< "${LABELS}"
+          
+          echo ""
+          echo "Applying annotations to the manifest list..."
+          
+          # Apply the OCI annotations to the manifest list
+          while IFS= read -r annotation; do
+            # The metadata action prefixes annotations with "manifest:", which we must remove.
+            clean_annotation="${annotation#manifest:}"
+            echo "Applying annotation: ${clean_annotation}"
+            podman manifest annotate --annotation "${clean_annotation}" "${MANIFEST}"
+          done <<< "${ANNOTATIONS}"
 
       - name: Login to GitHub Container Registry
         if: ${{ inputs.publish }}
