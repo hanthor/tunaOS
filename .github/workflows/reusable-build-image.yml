@@ -287,8 +287,8 @@ jobs:
           path: |
             /tmp/outputs/digests/*.txt
 
-  manifest:
-    name: Create ${{ inputs.image-name }}:${{ inputs.centos-version }} Manifest
+   manifest:
+    name: Create ${{ inputs.image-name }}:${{ inputs.major-version }} Manifest
     runs-on: ubuntu-latest
     if: always()
     needs:
@@ -304,10 +304,10 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          apk add jq git podman uutils bash conmon crun netavark fuse-overlayfs
-          ln -sf /bin/bash /bin/sh
+          sudo apt-get update
+          sudo apt-get install -y jq git podman fuse-overlayfs
           mkdir -p /etc/containers
-          echo '{"default":[{"type":"insecureAcceptAnything"}]}' | jq . > /etc/containers/policy.json
+          echo '{"default":[{"type":"insecureAcceptAnything"}]}' | sudo tee /etc/containers/policy.json
 
       - name: Exit on failure
         env:
