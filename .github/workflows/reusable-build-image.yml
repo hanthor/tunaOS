@@ -347,8 +347,8 @@ jobs:
         with:
           tags: |
             type=raw,value=${{ env.DEFAULT_TAG}}
-            type=raw,value=${{ env.MAJOR_VERSION }}
-            type=raw,value=${{ env.MAJOR_VERSION }}.{{date 'YYYYMMDD'}}
+            type=raw,value=${{ env.DEFAULT_TAG}}.${{ env.MAJOR_VERSION }}
+            type=raw,value=${{ env.DEFAULT_TAG}}.{{date 'YYYYMMDD'}}
             type=ref,event=pr
           labels: |
             io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/refs/heads/main/README.md
@@ -421,7 +421,8 @@ jobs:
           # Apply the labels to the manifest (separated by newlines)
           while IFS= read -r label; do
             echo "Applying label ${label} to manifest"
-            podman manifest annotate --index --annotation "$label" "${MANIFEST}"
+            # The --index flag has been removed from the following line
+            podman manifest annotate --annotation "$label" "${MANIFEST}"
           done <<< "${LABELS}"
 
       - name: Login to GitHub Container Registry
