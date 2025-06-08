@@ -413,7 +413,7 @@ jobs:
           platforms=()
           IFS=',' read -r -a platforms <<< "${PLATFORMS}"
           for platform in ${platforms[@]}; do
-            digest="$(echo $DIGESTS | jq -r ".$platform")"
+            digest="$(echo "$DIGESTS" | jq -r ".$platform")"
             echo "Adding ${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest} for ${platform}"
             podman manifest add "${MANIFEST}" "${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest}" --arch "${platform}"
           done
