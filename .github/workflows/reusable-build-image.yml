@@ -215,7 +215,11 @@ jobs:
           MAX_RETRIES: 3
         run: |
           set -x
-          podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${PLATFORM}"
+          if [ "${PLATFORM}" == "amd64/v2" ] ; then
+            podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-amd64"
+          else
+            podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${PLATFORM}"
+          fi
           for i in $(seq "${MAX_RETRIES}"); do
             podman push --digestfile=/tmp/digestfile "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${PLATFORM}" && break || sleep $((5 * i));
           done
@@ -278,7 +282,7 @@ jobs:
           PLATFORM_SLUG=$(echo "${PLATFORM}" | tr '/' '-')
           mkdir -p /tmp/outputs/digests
           echo "${DIGEST}" > "/tmp/outputs/digests/${IMAGE_NAME}-${PLATFORM_SLUG}.txt"
-          
+
       - name: Upload Output Artifacts
         if: ${{ inputs.publish }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
