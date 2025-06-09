@@ -42,6 +42,8 @@ dnf config-manager --set-disabled "tailscale-stable"
 dnf -y --enablerepo "tailscale-stable" install \
 	tailscale
 
+dnf copr enable -y ublue-os/packages
+dnf copr disable -y ublue-os/packages
 
 dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:packages install \
 	-x bluefin-logos \
