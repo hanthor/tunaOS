@@ -7,30 +7,30 @@ MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
 dnf -y remove \
 	setroubleshoot
 
-dnf -y install \
-	-x gnome-extensions-app \
-	system-reinstall-bootc \
-	gnome-disk-utility \
-	distrobox \
-	fastfetch \
-	fpaste \
-	gnome-shell-extension-{appindicator,dash-to-dock,blur-my-shell} \
-	just \
-	powertop \
-	tuned-ppd \
-	fzf \
-	glow \
-	wl-clipboard \
-	gum \
-	jetbrains-mono-fonts-all \
-	buildah \
-    xhost \
-	cockpit \
-	cockpit-machines \
-	cockpit-ws \
-	cockpit-files \
-	cockpit-podman \
-	cockpit-image-builder
+# dnf -y install \
+# 	-x gnome-extensions-app \
+# 	system-reinstall-bootc \
+# 	gnome-disk-utility \
+# 	distrobox \
+# 	fastfetch \
+# 	fpaste \
+# 	gnome-shell-extension-{appindicator,dash-to-dock,blur-my-shell} \
+# 	just \
+# 	powertop \
+# 	tuned-ppd \
+# 	fzf \
+# 	glow \
+# 	wl-clipboard \
+# 	gum \
+# 	jetbrains-mono-fonts-all \
+# 	buildah \
+#     xhost \
+# 	cockpit \
+# 	cockpit-machines \
+# 	cockpit-ws \
+# 	cockpit-files \
+# 	cockpit-podman \
+# 	cockpit-image-builder
 
 # Everything that depends on external repositories should be after this.
 # Make sure to set them as disabled and enable them only when you are going to use their packages.
@@ -42,13 +42,6 @@ dnf config-manager --set-disabled "tailscale-stable"
 dnf -y --enablerepo "tailscale-stable" install \
 	tailscale
 
-dnf -y copr enable ublue-os/packages
-dnf -y copr disable ublue-os/packages
-dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:packages swap \
-	almalinux-logos bluefin-logos --allowerasing
-
-dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:packages swap \
-	plymouth-theme-spinner bluefin-plymouth --allowerasing
 
 dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:packages install \
 	-x bluefin-logos \
@@ -60,7 +53,7 @@ dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:packages install \
 	ublue-os-update-services \
 	ublue-{motd,fastfetch,bling,rebase-helper,setup-services,polkit-rules,brew} \
 	uupd \
-	bluefin-*
+	bluefin-schemas
 
 # Upstream ublue-os-signing bug, we are using /usr/etc for the container signing and bootc gets mad at this
 # FIXME: remove this once https://github.com/ublue-os/packages/issues/245 is closed
