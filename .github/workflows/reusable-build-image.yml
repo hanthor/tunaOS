@@ -69,16 +69,27 @@ env:
   MAJOR_VERSION: ${{ inputs.major-version }}
 
 jobs:
+  prepare_matrix:
+    name: Prepare Build Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Create matrix string from platforms input
+        id: set-matrix
+        run: |
+          platforms="${{ inputs.platforms }}"
+          json_array="[\"$(echo $platforms | sed 's/,/\",\"/g')\"]"
+          echo "matrix=${json_array}" >> $GITHUB_OUTPUT
+
   build_push:
     name: Build and Push on ${{ matrix.platform }}
-    runs-on: ${{ (matrix.platform == 'amd64' && 'ubuntu-24.04') || 'ubuntu-24.04-arm' }}
+    runs-on: ${{ (matrix.platform == 'amd64/v2' && 'ubuntu-24.04') || (matrix.platform == 'amd64' && 'ubuntu-24.04') || 'ubuntu-24.04-arm' }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        # CORRECTED: This is a simpler and more robust way to create a matrix
-        # from a comma-separated string input.
-        platform: ${{ fromJSON(toJSON(split(inputs.platforms, ','))) }}
+        platform: ${{ fromJSON(needs.prepare_matrix.outputs.matrix) }}
     permissions:
       contents: read
       packages: write
@@ -220,7 +231,7 @@ jobs:
     name: Create and Push Manifest
     runs-on: ubuntu-latest
     if: ${{ inputs.publish }}
-    needs: [build_push]
+    needs: [prepare_matrix, build_push]
     permissions:
       contents: read
       packages: write
