@@ -174,20 +174,8 @@ jobs:
           
           echo "remote_image_digest=$(cat /tmp/digestfile)" >> "$GITHUB_OUTPUT"
 
-      - name: Install Cosign
-        if: ${{ inputs.publish && secrets.SIGNING_SECRET != '' }}
-        uses: sigstore/cosign-installer@v3
-
-      - name: Sign Image
-        if: ${{ inputs.publish && secrets.SIGNING_SECRET != '' }}
-        env:
-          COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
-        run: |
-          cosign sign -y --key env://COSIGN_PRIVATE_KEY \
-            "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.remote_image_digest }}"
-
       - name: Add SBOM Attestation
-        if: ${{ inputs.sbom && inputs.publish && secrets.SIGNING_SECRET != '' }}
+        if: ${{ inputs.sbom && inputs.publish }}
         env:
           IMAGE: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
           DIGEST: ${{ steps.push.outputs.remote_image_digest }}
@@ -308,7 +296,7 @@ jobs:
     name: Sign Manifest
     runs-on: ubuntu-latest
     needs: manifest
-    if: ${{ needs.manifest.result == 'success' && inputs.publish && secrets.SIGNING_SECRET != '' }}
+    if: ${{ github.event_name != 'pull_request' }}
     permissions:
       packages: write
       id-token: write
