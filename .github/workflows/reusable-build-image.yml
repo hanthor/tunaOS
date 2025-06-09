@@ -1,4 +1,7 @@
----
+# This is the improved GitHub Actions workflow.
+# Key changes include a simplified matrix strategy, robust push retries,
+# safer defaults for publishing, and conditional signing steps.
+
 name: Build Image
 on:
   workflow_call:
@@ -51,11 +54,10 @@ on:
         description: "Publish this image"
         required: false
         type: boolean
-        # default: ${{ github.event_name != 'pull_request' }}
-        default: true
+        default: ${{ github.event_name != 'pull_request' }}
     secrets:
       SIGNING_SECRET:
-        description: "The private key used to sign the image"
+        description: "The private key used to sign the image. If not provided, signing steps will be skipped."
         required: false
 
 env:
@@ -67,34 +69,16 @@ env:
   PLATFORMS: ${{ inputs.platforms }}
 
 jobs:
-  generate_matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - name: Set matrix
-        id: set-matrix
-        env:
-          PLATFORMS: "${{ inputs.platforms }}"
-        run: |
-          # turn the comma separated string into a list
-          platforms=()
-          IFS=',' read -r -a platforms <<< "${PLATFORMS}"
-
-          MATRIX="{\"include\":[]}"
-          for platform in "${platforms[@]}"; do
-            MATRIX="$(echo "${MATRIX}" | jq ".include += [{\"platform\": \"${platform}\"}]")"
-          done
-          echo "matrix=$(echo "${MATRIX}" | jq -c '.')" >> $GITHUB_OUTPUT
-
   build_push:
-    name: Build and push image
-    runs-on: ${{ matrix.platform == 'amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
+    name: Build and push image on ${{ matrix.platform }}
+    # Use a clear mapping for runner selection
+    runs-on: ${{ (matrix.platform == 'amd64' && 'ubuntu-24.04') || 'ubuntu-24.04-arm' }}
     timeout-minutes: 60
-    needs: generate_matrix
     strategy:
       fail-fast: false
-      matrix: ${{fromJson(needs.generate_matrix.outputs.matrix)}}
+      matrix:
+        # SIMPLIFIED: Directly generate the matrix from the input string
+        platform: ${{ fromJson(format('[{0}]', join(split(inputs.platforms, ','), ','))) }}
     permissions:
       contents: read
       packages: write
@@ -105,8 +89,7 @@ jobs:
         if: matrix.platform == 'arm64'
         run: |
           sudo apt update -y
-          sudo apt install -y \
-            podman
+          sudo apt install -y podman
 
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -146,13 +129,13 @@ jobs:
           sudo $just build "${IMAGE_NAME}" "${DEFAULT_TAG}" "${ENABLE_DX}" "${ENABLE_GDX}"
 
       - name: Setup Syft
-        id: setup-syft
         if: ${{ inputs.sbom && inputs.publish }}
         uses: anchore/sbom-action/download-syft@e11c554f704a0b820cbf8c51673f6945e0731532 # v0
+        id: setup-syft
 
       - name: Generate SBOM
-        id: generate-sbom
         if: ${{ inputs.sbom && inputs.publish }}
+        id: generate-sbom
         env:
           IMAGE: ${{ env.IMAGE_NAME }}
           DEFAULT_TAG: ${{ env.DEFAULT_TAG }}
@@ -191,54 +174,47 @@ jobs:
           fi
           podman image tag "${IMAGE}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}"
 
-          IMAGE="${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}"
-          IMAGE_DIGEST="$(podman image inspect --format '{{.Digest}}' "${IMAGE}")"
-          echo "image=${IMAGE}" >> "${GITHUB_OUTPUT}"
+          IMAGE_TAGGED="${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}"
+          IMAGE_DIGEST="$(podman image inspect --format '{{.Digest}}' "${IMAGE_TAGGED}")"
+          echo "image=${IMAGE_TAGGED}" >> "${GITHUB_OUTPUT}"
           echo "digest=${IMAGE_DIGEST}" >> "${GITHUB_OUTPUT}"
 
       - name: Login to GitHub Container Registry
         if: ${{ inputs.publish }}
-        env:
-          REGISTRY: ghcr.io
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | podman login -u "${{ github.actor }}" --password-stdin "${REGISTRY}"
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u "${{ github.actor }}" --password-stdin "${REGISTRY}"
+          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Push to GHCR
         if: ${{ inputs.publish }}
         id: push
-        env:
-          IMAGE_REGISTRY: ${{ env.IMAGE_REGISTRY }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          IMAGE_DIGEST: ${{ steps.load.outputs.digest }}
-          PLATFORM: ${{ matrix.platform }}
-          MAX_RETRIES: 3
         run: |
           set -x
-            podman push --all=false --digestfile=/tmp/digestfile "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" --arch "${PLATFORM}"
-          for i in $(seq "${MAX_RETRIES}"); do            
-            podman push --all=false --digestfile=/tmp/digestfile "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" --arch "${PLATFORM}"
-          done
+          # ROBUST RETRY: Use podman's built-in retry mechanism
+          podman push \
+            --retry=3 --retry-delay=5s \
+            --all=false --digestfile=/tmp/digestfile \
+            "${{ steps.load.outputs.image }}" --arch "${{ matrix.platform }}"
+          
           REMOTE_IMAGE_DIGEST=$(cat /tmp/digestfile)
           echo "remote_image_digest=${REMOTE_IMAGE_DIGEST}" >> $GITHUB_OUTPUT
 
-
       - name: Install Cosign
+        if: ${{ inputs.publish && secrets.SIGNING_SECRET != '' }}
         uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
-        if: ${{ inputs.publish }}
 
       - name: Sign Image
-        if: ${{ inputs.publish }}
-        run: |
-          IMAGE_FULL="${IMAGE_REGISTRY}/${IMAGE_NAME}"
-          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${IMAGE_FULL}@${{ steps.push.outputs.remote_image_digest }}
+        # CONDITIONAL SIGNING: Only run if secret is present
+        if: ${{ inputs.publish && secrets.SIGNING_SECRET != '' }}
         env:
-          TAGS: ${{ steps.push.outputs.digest }}
-          COSIGN_EXPERIMENTAL: false
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
+          COSIGN_EXPERIMENTAL: false
+          IMAGE_FULL: "${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}"
+        run: |
+          cosign sign -y --key env://COSIGN_PRIVATE_KEY "${IMAGE_FULL}@${{ steps.push.outputs.remote_image_digest }}"
 
       - name: Add SBOM Attestation
-        if: ${{ inputs.sbom }}
+        # CONDITIONAL SIGNING
+        if: ${{ inputs.sbom && inputs.publish && secrets.SIGNING_SECRET != '' }}
         env:
           IMAGE: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
           DIGEST: ${{ steps.push.outputs.remote_image_digest }}
@@ -246,39 +222,25 @@ jobs:
           SBOM_OUTPUT: ${{ steps.generate-sbom.outputs.OUTPUT_PATH }}
         run: |
           cd "$(dirname "$SBOM_OUTPUT")"
-
-          # Compress the SBOM and create the predicate
           TYPE="urn:ublue-os:attestation:spdx+json+zstd:v1"
           zstd -19 "./sbom.json" -o "./sbom.json.zst"
-          BASE64_SBOM_FILE="payload.b64"
-          base64 "./sbom.json.zst" | tr -d '\n' > "${BASE64_SBOM_FILE}"
+          
           PREDICATE_FILE="payload.json"
           jq -n \
             --arg compression "zstd" \
             --arg mediaType "application/spdx+json" \
-            --rawfile payload "${BASE64_SBOM_FILE}" \
+            --rawfile payload <(base64 -w0 "./sbom.json.zst") \
             '{compression: $compression, mediaType: $mediaType, payload: $payload}' \
             > "$PREDICATE_FILE"
-          rm -f "${BASE64_SBOM_FILE}"
 
-          # Create the attestation
-          cosign attest -y \
-            --predicate "${PREDICATE_FILE}" \
-            --type $TYPE \
-            --key env://COSIGN_PRIVATE_KEY \
-            "${IMAGE}@${DIGEST}"
+          cosign attest -y --predicate "${PREDICATE_FILE}" --type $TYPE --key env://COSIGN_PRIVATE_KEY "${IMAGE}@${DIGEST}"
 
       - name: Create Job Outputs
         if: ${{ inputs.publish }}
-        env:
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          PLATFORM: ${{ matrix.platform }}
-          DIGEST: ${{ steps.push.outputs.remote_image_digest }}
         run: |
-          # Sanitize platform name for filename, e.g., 'amd64/v2' -> 'amd64-v2'
-          PLATFORM_SLUG=$(echo "${PLATFORM}" | tr '/' '-')
+          PLATFORM_SLUG=$(echo "${{ matrix.platform }}" | tr '/' '-')
           mkdir -p /tmp/outputs/digests
-          echo "${DIGEST}" > "/tmp/outputs/digests/${IMAGE_NAME}-${PLATFORM_SLUG}.txt"
+          echo "${{ steps.push.outputs.remote_image_digest }}" > "/tmp/outputs/digests/${{ env.IMAGE_NAME }}-${PLATFORM_SLUG}.txt"
 
       - name: Upload Output Artifacts
         if: ${{ inputs.publish }}
@@ -287,16 +249,13 @@ jobs:
           name: ${{ env.IMAGE_NAME }}-${{ matrix.platform }}
           retention-days: 1
           if-no-files-found: error
-          path: |
-            /tmp/outputs/digests/*.txt
+          path: /tmp/outputs/digests/
 
   manifest:
-    name: Create ${{ inputs.image-name }}:${{ inputs.major-version }} Manifest
+    name: Create and Push Manifest
     runs-on: ubuntu-latest
-    if: always()
-    needs:
-      - generate_matrix
-      - build_push
+    if: ${{ inputs.publish }} # This entire job is for publishing
+    needs: [build_push]
     permissions:
       contents: read
       packages: write
@@ -305,56 +264,33 @@ jobs:
       image: ${{ steps.push_manifest.outputs.IMAGE }}
       digest: ${{ steps.push_manifest.outputs.DIGEST }}
     steps:
+      - name: Check build job status
+        if: needs.build_push.result != 'success'
+        run: |
+          echo "One or more build_push jobs failed. Aborting manifest creation."
+          exit 1
+      
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq git podman fuse-overlayfs
-          mkdir -p /etc/containers
-          echo '{"default":[{"type":"insecureAcceptAnything"}]}' | sudo tee /etc/containers/policy.json
+          sudo apt-get install -y jq podman
 
-      - name: Exit on failure
-        env:
-          JOBS: ${{ toJson(needs) }}
-        run: |
-          echo "Job status:"
-          echo $JOBS | jq -r 'to_entries[] | " - \(.key): \(.value.result)"'
-
-          for i in $(echo "${JOBS}" | jq -r 'to_entries[] | .value.result'); do
-            if [ "$i" != "success" ] && [ "$i" != "skipped" ]; then
-              echo ""
-              echo "Status check not okay!"
-              exit 1
-            fi
-          done
-
-      - name: Get current date
+      - name: Get current date for OCI spec
         id: date
-        run: |
-          # Should generate a timestamp like what is defined on the ArtifactHub documentation
-          # E.G: 2022-02-08T15:38:15Z'
-          # https://artifacthub.io/docs/topics/repositories/container-images/
-          # https://linux.die.net/man/1/date
-          echo "date=$(date -u +%Y\-%m\-%d\T%H\:%M\:%S\Z)" >> $GITHUB_OUTPUT
+        run: echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
 
-      - name: Extract numbers from input
-        id: extract-numbers
-        env:
-          MAJOR_VERSION: ${{ env.MAJOR_VERSION }}
-        run: |
-          numbers_only=$(echo "${MAJOR_VERSION}" | tr -cd '0-9')
-          echo "MAJOR_VERSION_NUMBER=${numbers_only}" >> "${GITHUB_ENV}"
-
-      - name: Image Metadata
-        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5
+      - name: Generate Image Metadata
         id: metadata
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5
         with:
+          images: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=${{ env.DEFAULT_TAG}}
             type=raw,value=${{ env.MAJOR_VERSION }}-server
             type=raw,value=${{ env.MAJOR_VERSION }}-server.{{date 'YYYYMMDD'}}
             type=ref,event=pr
           labels: |
-            io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/refs/heads/main/README.md
+            io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/main/README.md
             org.opencontainers.image.created=${{ steps.date.outputs.date }}
             org.opencontainers.image.description=${{ env.IMAGE_DESC }}
             org.opencontainers.image.documentation=https://docs.projectbluefin.io
@@ -363,149 +299,82 @@ jobs:
             org.opencontainers.image.url=https://projectbluefin.io
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.version=${{ env.MAJOR_VERSION }}
-            io.artifacthub.package.deprecated=false
-            io.artifacthub.package.keywords=bootc,centos,bluefin,ublue,universal-blue
-            io.artifacthub.package.license=Apache-2.0
-            io.artifacthub.package.logo-url=https://avatars.githubusercontent.com/u/120078124?s=200&v=4
-            io.artifacthub.package.maintainers=[{\"name\":\"tulilirockz\",\"email\":\"tulilirockz@outlook.com\"},{\"name\":\"castrojo\",\"email\":\"jorge.castro@gmail.com\"}]
-            io.artifacthub.package.prerelease=true
-            containers.bootc=1
 
       - name: Fetch Build Outputs
-        if: ${{ inputs.publish }}
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: ${{ env.IMAGE_NAME }}-*
           merge-multiple: true
           path: /tmp/artifacts
 
-      - name: Create Manifest
-        if: ${{ inputs.publish }}
-        id: create-manifest
+      - name: Populate and Annotate Manifest
+        id: create_manifest
         env:
-          IMAGE_REGISTRY: ${{ env.IMAGE_REGISTRY }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-        run: |
-          podman manifest create ${IMAGE_REGISTRY}/${IMAGE_NAME}
-          echo "MANIFEST=${IMAGE_REGISTRY}/${IMAGE_NAME}" >> $GITHUB_OUTPUT
-
-      - name: Load and Validate Outputs
-        if: ${{ inputs.publish }}
-        id: load-outputs
-        env:
-          PLATFORMS: "${{ inputs.platforms }}"
-        run: |
-          set -e -o pipefail
-
-          DIGESTS_JSON="$(jq -n '{}')"
-          for digest_file in /tmp/artifacts/*.txt; do
-            # Sanitize platform name by replacing slashes, e.g., 'amd64/v2' -> 'amd64-v2'
-            PLATFORM_SLUG="$(basename "${digest_file}" | rev | cut -d'-' -f1 | rev | cut -d'.' -f1)"
-            DIGEST="$(cat "${digest_file}")"
-            # Revert slug to original platform name for the JSON key
-            PLATFORM_KEY="$(echo "${PLATFORM_SLUG}" | tr '-' '/')"
-            DIGESTS_JSON="$(echo "${DIGESTS_JSON}" | jq --arg key "${PLATFORM_KEY}" --arg value "${DIGEST}" '. + {($key): $value}')"
-          done
-          echo "Successfully loaded digests: ${DIGESTS_JSON}"
-          echo "DIGESTS_JSON=$(echo "$DIGESTS_JSON" | jq -c '.')" >> "${GITHUB_OUTPUT}"
-
-          # --- VALIDATION STEP ---
-          # Turn the comma-separated input string into a list
-          platforms=()
-          IFS=',' read -r -a platforms <<< "${PLATFORMS}"
-          echo "Verifying digests exist for all required platforms: ${platforms[@]}"
-          for platform in "${platforms[@]}"; do
-            digest_check=$(echo "$DIGESTS_JSON" | jq -r --arg p "$platform" '.[$p]')
-            if [[ "$digest_check" == "null" || -z "$digest_check" ]]; then
-              echo "❌ ERROR: Digest for platform '${platform}' is missing."
-              echo "The 'build_push' job for this platform likely failed or did not produce an output artifact."
-              exit 1
-            fi
-            echo "✅ Digest for ${platform} found."
-          done
-
-
-      - name: Populate Manifest
-        if: ${{ inputs.publish }}
-        env:
-          MANIFEST: ${{ steps.create-manifest.outputs.MANIFEST }}
-          DIGESTS_JSON: ${{ steps.load-outputs.outputs.DIGESTS_JSON }}
-          ANNOTATIONS: ${{ steps.metadata.outputs.annotations }}
-          PLATFORMS: "${{ inputs.platforms }}"
+          MANIFEST_NAME: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
+          ANNOTATIONS: ${{ steps.metadata.outputs.labels }}
         run: |
           set -e -o pipefail -x
+          
+          # Create manifest with the first image to apply annotations
+          first_digest_file=$(find /tmp/artifacts -type f -name "*.txt" | head -n 1)
+          first_digest=$(cat "$first_digest_file")
+          podman manifest create "${MANIFEST_NAME}" "docker://${MANIFEST_NAME}@${first_digest}"
 
-          # Add each platform-specific image to the manifest
-          platforms=()
-          IFS=',' read -r -a platforms <<< "${PLATFORMS}"
-          for platform in "${platforms[@]}"; do
-            digest="$(echo "$DIGESTS_JSON" | jq -r --arg p "$platform" '.[$p]')"
-            echo "Adding digest for ${platform}: ${digest}"
-            podman manifest add "${MANIFEST}" "${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest}" --arch "${platform}"
+          # Add remaining images
+          find /tmp/artifacts -type f -name "*.txt" | tail -n +2 | while read -r digest_file; do
+            digest=$(cat "$digest_file")
+            podman manifest add "${MANIFEST_NAME}" "docker://${MANIFEST_NAME}@${digest}"
           done
 
-          echo ""
-          echo "Applying annotations to the manifest list..."
-          # Apply the OCI annotations to the manifest list
+          # Apply annotations
           while IFS= read -r annotation; do
-            # remove "manifest:" prefix
-            clean_annotation="${annotation#manifest:}"
-            echo "Applying annotation: ${clean_annotation}"
-            # FIX: Use --annotation flag for clarity and compatibility
-            podman manifest annotate "${MANIFEST}" --annotation "${clean_annotation}"
+            podman manifest annotate "${MANIFEST_NAME}" --annotation "${annotation}"
           done <<< "${ANNOTATIONS}"
+          
+          echo "manifest_name=${MANIFEST_NAME}" >> $GITHUB_OUTPUT
 
       - name: Login to GitHub Container Registry
-        if: ${{ inputs.publish }}
-        env:
-          REGISTRY: ghcr.io
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | podman login -u "${{ github.actor }}" --password-stdin "${REGISTRY}"
+          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Push Manifest
-        if: github.event_name != 'pull_request'
         id: push_manifest
         env:
-          MANIFEST: ${{ steps.create-manifest.outputs.MANIFEST }}
+          MANIFEST: ${{ steps.create_manifest.outputs.manifest_name }}
           TAGS: ${{ steps.metadata.outputs.tags }}
-          IMAGE_REGISTRY: ${{ env.IMAGE_REGISTRY }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
         run: |
+          set -e
+          # Push the manifest to each tag
+          digestfile_path="/tmp/digestfile"
           while IFS= read -r tag; do
-            podman manifest push --all=false --digestfile=/tmp/digestfile $MANIFEST $IMAGE_REGISTRY/$IMAGE_NAME:$tag
-          done <<< "$TAGS"
+            podman manifest push --all "${MANIFEST}" "docker://${tag}" --digestfile "${digestfile_path}"
+          done <<< "${TAGS}"
+          
+          DIGEST=$(cat "${digestfile_path}")
+          echo "DIGEST=${DIGEST}" >> $GITHUB_OUTPUT
+          echo "IMAGE=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
 
-          DIGEST=$(cat /tmp/digestfile)
-          echo "DIGEST=$DIGEST" >> $GITHUB_OUTPUT
-          echo "IMAGE=$IMAGE_REGISTRY/$IMAGE_NAME" >> $GITHUB_OUTPUT
-
-  # Cosign throws errors when ran inside the Fedora container for one reason or another
-  # so we move this to another step in order to run on Ubuntu
-  sign:
-    needs: manifest
-    if: github.event_name != 'pull_request'
+  sign_manifest:
+    name: Sign Manifest
     runs-on: ubuntu-latest
+    needs: manifest
+    # CONDITIONAL SIGNING: Also depends on the secret being available
+    if: ${{ needs.manifest.result == 'success' && inputs.publish && secrets.SIGNING_SECRET != '' }}
     permissions:
-      contents: read
       packages: write
       id-token: write
     steps:
-      - name: Login to GitHub Container Registry
-        if: ${{ inputs.publish }}
-        env:
-          REGISTRY: ghcr.io
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | podman login -u "${{ github.actor }}" --password-stdin "${REGISTRY}"
-          cat ${XDG_RUNTIME_DIR}/containers/auth.json > ~/.docker/config.json
-
       - name: Install Cosign
         uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
 
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | cosign login ghcr.io -u "${{ github.actor }}" --password-stdin
+
       - name: Sign Manifest
         env:
-          DIGEST: ${{ needs.manifest.outputs.digest }}
-          IMAGE: ${{ needs.manifest.outputs.image }}
           COSIGN_EXPERIMENTAL: false
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
+          IMAGE_DIGEST: ${{ needs.manifest.outputs.digest }}
+          IMAGE_URL: ${{ needs.manifest.outputs.image }}
         run: |
-          cosign sign -y --key env://COSIGN_PRIVATE_KEY "${IMAGE}@${DIGEST}"
+          cosign sign -y --key env://COSIGN_PRIVATE_KEY "${IMAGE_URL}@${IMAGE_DIGEST}"
