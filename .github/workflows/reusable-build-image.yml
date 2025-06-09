@@ -70,12 +70,28 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
+      - name: Debug Inputs
+        run: |
+          echo "Image Name: ${{ inputs.image-name }}"
+          echo "Image Description: ${{ inputs.image-desc }}"
+          echo "Flavor: ${{ inputs.flavor }}"
+          echo "Platforms: ${{ inputs.platforms }}"
+          echo "Major Version: ${{ inputs.major-version }}"
+          echo "Default Tag: ${{ inputs.default-tag }}"
+          echo "Rechunk: ${{ inputs.rechunk }}"
+          echo "SBOM: ${{ inputs.sbom }}"
+          echo "Cleanup Runner: ${{ inputs.cleanup_runner }}"
+          echo "Publish: ${{ inputs.publish }}"
       - name: Create matrix string from platforms input
         id: set-matrix
         run: |
           platforms="${{ inputs.platforms }}"
+          if [ -z "$platforms" ]; then
+            platforms="amd64,arm64"
+          fi
           json_array="[\"$(echo $platforms | sed 's/,/\",\"/g')\"]"
           echo "matrix=${json_array}" >> $GITHUB_OUTPUT
+
 
   build_push:
     name: Build and Push on ${{ matrix.platform }}
@@ -84,7 +100,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: ${{ fromJSON(needs.prepare_matrix.outputs.matrix) }}
+        platform: ${{ fromJson(needs.prepare_matrix.outputs.matrix) }}
     permissions:
       contents: read
       packages: write
