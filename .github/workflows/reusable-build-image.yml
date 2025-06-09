@@ -1,5 +1,3 @@
-# This workflow builds a Bluefin image and pushes it to the GitHub Container Registry.
-# It supports multiple platforms and can generate SBOMs and sign images.
 name: Build Image
 on:
   workflow_call:
@@ -54,9 +52,6 @@ on:
         type: boolean
         default: ${{ github.event_name != 'pull_request' }}
     secrets:
-      # This secret MUST be passed by the workflow that calls this reusable workflow.
-      # e.g., secrets:
-      #         inherit
       SIGNING_SECRET:
         description: "The private key used to sign the image. If not provided, signing steps are skipped."
         required: false
@@ -169,14 +164,12 @@ jobs:
           set -x
           IMAGE_TO_PUSH="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}"
           
-          # Tag the local image before pushing. Handles rechunked vs. non-rechunked images.
           LOCAL_IMAGE_REF="localhost/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}"
           if [ "${{ inputs.rechunk }}" == "true" ] && [ -n "${{ steps.rechunk.outputs.ref }}" ]; then
             LOCAL_IMAGE_REF="${{ steps.rechunk.outputs.ref }}"
           fi
           podman tag "${LOCAL_IMAGE_REF}" "${IMAGE_TO_PUSH}"
           
-          # Use podman's built-in retry mechanism for robustness
           podman push --retry=3 --retry-delay=5s --digestfile=/tmp/digestfile "${IMAGE_TO_PUSH}" --arch "${{ matrix.platform }}"
           
           echo "remote_image_digest=$(cat /tmp/digestfile)" >> "$GITHUB_OUTPUT"
