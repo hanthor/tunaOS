@@ -274,9 +274,11 @@ jobs:
           PLATFORM: ${{ matrix.platform }}
           DIGEST: ${{ steps.push.outputs.remote_image_digest }}
         run: |
+          # Sanitize platform name for filename, e.g., 'amd64/v2' -> 'amd64-v2'
+          PLATFORM_SLUG=$(echo "${PLATFORM}" | tr '/' '-')
           mkdir -p /tmp/outputs/digests
-          echo "${DIGEST}" > "/tmp/outputs/digests/${IMAGE_NAME}-${PLATFORM}.txt"
-
+          echo "${DIGEST}" > "/tmp/outputs/digests/${IMAGE_NAME}-${PLATFORM_SLUG}.txt"
+          
       - name: Upload Output Artifacts
         if: ${{ inputs.publish }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -376,20 +378,6 @@ jobs:
           merge-multiple: true
           path: /tmp/artifacts
 
-      - name: Load Outputs
-        if: ${{ inputs.publish }}
-        id: load-outputs
-        run: |
-          DIGESTS_JSON="$(jq -n '{}')"
-          for digest_file in /tmp/artifacts/*.txt; do
-            # Extract the platform from the file name
-            PLATFORM="$(basename "${digest_file}" | rev | cut -d'-' -f1 | rev | cut -d'.' -f1)"
-            DIGEST="$(cat "${digest_file}")"
-            # Add the platform and digest to the JSON object
-            DIGESTS_JSON="$(echo "${DIGESTS_JSON}" | jq --arg key "${PLATFORM}" --arg value "${DIGEST}" '. + {($key): $value}')"
-          done
-          echo "DIGESTS_JSON=$(echo "$DIGESTS_JSON" | jq -c '.')" >> "${GITHUB_OUTPUT}"
-
       - name: Create Manifest
         if: ${{ inputs.publish }}
         id: create-manifest
@@ -400,6 +388,42 @@ jobs:
           podman manifest create ${IMAGE_REGISTRY}/${IMAGE_NAME}
           echo "MANIFEST=${IMAGE_REGISTRY}/${IMAGE_NAME}" >> $GITHUB_OUTPUT
 
+      - name: Load and Validate Outputs
+        if: ${{ inputs.publish }}
+        id: load-outputs
+        env:
+          PLATFORMS: "${{ inputs.platforms }}"
+        run: |
+          set -e -o pipefail
+
+          DIGESTS_JSON="$(jq -n '{}')"
+          for digest_file in /tmp/artifacts/*.txt; do
+            # Sanitize platform name by replacing slashes, e.g., 'amd64/v2' -> 'amd64-v2'
+            PLATFORM_SLUG="$(basename "${digest_file}" | rev | cut -d'-' -f1 | rev | cut -d'.' -f1)"
+            DIGEST="$(cat "${digest_file}")"
+            # Revert slug to original platform name for the JSON key
+            PLATFORM_KEY="$(echo "${PLATFORM_SLUG}" | tr '-' '/')"
+            DIGESTS_JSON="$(echo "${DIGESTS_JSON}" | jq --arg key "${PLATFORM_KEY}" --arg value "${DIGEST}" '. + {($key): $value}')"
+          done
+          echo "Successfully loaded digests: ${DIGESTS_JSON}"
+          echo "DIGESTS_JSON=$(echo "$DIGESTS_JSON" | jq -c '.')" >> "${GITHUB_OUTPUT}"
+
+          # --- VALIDATION STEP ---
+          # Turn the comma-separated input string into a list
+          platforms=()
+          IFS=',' read -r -a platforms <<< "${PLATFORMS}"
+          echo "Verifying digests exist for all required platforms: ${platforms[@]}"
+          for platform in "${platforms[@]}"; do
+            digest_check=$(echo "$DIGESTS_JSON" | jq -r --arg p "$platform" '.[$p]')
+            if [[ "$digest_check" == "null" || -z "$digest_check" ]]; then
+              echo "❌ ERROR: Digest for platform '${platform}' is missing."
+              echo "The 'build_push' job for this platform likely failed or did not produce an output artifact."
+              exit 1
+            fi
+            echo "✅ Digest for ${platform} found."
+          done
+
+
       - name: Populate Manifest
         if: ${{ inputs.publish }}
         env:
@@ -408,25 +432,26 @@ jobs:
           ANNOTATIONS: ${{ steps.metadata.outputs.annotations }}
           PLATFORMS: "${{ inputs.platforms }}"
         run: |
+          set -e -o pipefail -x
+
           # Add each platform-specific image to the manifest
-          DIGESTS=$(echo "$DIGESTS_JSON" | jq -c '.')
           platforms=()
           IFS=',' read -r -a platforms <<< "${PLATFORMS}"
-          for platform in ${platforms[@]}; do
-            digest="$(echo "$DIGESTS" | jq -r ".$platform")"
-            echo "Adding ${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest} for ${platform}"
+          for platform in "${platforms[@]}"; do
+            digest="$(echo "$DIGESTS_JSON" | jq -r --arg p "$platform" '.[$p]')"
+            echo "Adding digest for ${platform}: ${digest}"
             podman manifest add "${MANIFEST}" "${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest}" --arch "${platform}"
           done
-          
+
           echo ""
           echo "Applying annotations to the manifest list..."
-          
           # Apply the OCI annotations to the manifest list
           while IFS= read -r annotation; do
+            # remove "manifest:" prefix
             clean_annotation="${annotation#manifest:}"
             echo "Applying annotation: ${clean_annotation}"
-            # CORRECTED SYNTAX: Provide manifest and annotation as two arguments
-            podman manifest annotate "${MANIFEST}" "${clean_annotation}"
+            # FIX: Use --annotation flag for clarity and compatibility
+            podman manifest annotate "${MANIFEST}" --annotation "${clean_annotation}"
           done <<< "${ANNOTATIONS}"
 
       - name: Login to GitHub Container Registry
