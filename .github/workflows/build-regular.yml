@@ -6,12 +6,14 @@ on:
       - main
       - F42
       - a10
+      - a10-server
       - a10s
   push:
     branches:
       - main
       - F42
       - a10
+      - a10-server
       - a10s
   schedule:
     - cron: "0 1 * * TUE" # Every Tuesday at 1am UTC
@@ -33,3 +35,4 @@ jobs:
       rechunk: ${{ github.event_name != 'pull_request' }}
       sbom: ${{ github.event_name != 'pull_request' }}
       publish: ${{ github.event_name != 'pull_request' }}
+      platforms: ${{ github.ref_name == 'a10-server' && 'amd64,arm64,amd64/v2' || github.ref_name == 'a10' && 'amd64,arm64,amd64/v2' || github.ref_name == 'a10s' && 'amd64,arm64,amd64/v2' ||'amd64' }}
