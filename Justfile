@@ -258,22 +258,22 @@ sync_image SID DID=SID reverse='false':
     #!/usr/bin/env bash
     set -eoux pipefail
 
-    if [[ "{{reverse}}" == 'true' ]]; then
-        if [[ -z "${SUDO_USER:-}" ]] || ! podman image exists "{{SID}}"; then
+    if [[ "{{ reverse }}" == 'true' ]]; then
+        if [[ -z "${SUDO_USER:-}" ]] || ! podman image exists "{{ SID }}"; then
             exit 0
         fi
         TARGET_UID=$(id -u "${SUDO_USER}")
-        SOURCE_EP="root@localhost::{{SID}}"
-        DEST_EP="${TARGET_UID}@localhost::{{DID}}"
-        just sudoif -i -u "${SUDO_USER}" podman image rm "{{DID}}" >/dev/null 2>&1 || true
+        SOURCE_EP="root@localhost::{{ SID }}"
+        DEST_EP="${TARGET_UID}@localhost::{{ DID }}"
+        just sudoif -i -u "${SUDO_USER}" podman image rm "{{ DID }}" >/dev/null 2>&1 || true
         podman image scp "${SOURCE_EP}" "${DEST_EP}"
-        podman image rm "{{SID}}"
+        podman image rm "{{ SID }}"
     else
-        if ! podman image exists "{{SID}}"; then
+        if ! podman image exists "{{ SID }}"; then
             exit 1
         fi
-        SOURCE_EP="${UID}@localhost::{{SID}}"
-        DEST_EP="root@localhost::{{DID}}"
+        SOURCE_EP="${UID}@localhost::{{ SID }}"
+        DEST_EP="root@localhost::{{ DID }}"
 
 # Build a bootc bootable image using Bootc Image Builder (BIB)
 # Converts a container image to a bootable image
