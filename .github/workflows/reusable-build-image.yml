@@ -278,6 +278,9 @@ jobs:
           DIGEST: ${{ steps.push.outputs.remote_image_digest }}
         run: |
           mkdir -p /tmp/outputs/digests
+          if [[ "${PLATFORM}" == *"/"* ]]; then
+            PLATFORM=$(echo "${PLATFORM}" | cut -d'/' -f2)
+          fi
           echo "${DIGEST}" > "/tmp/outputs/digests/${IMAGE_NAME}-${PLATFORM}.txt"
 
       - name: Upload Output Artifacts
