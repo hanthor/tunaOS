@@ -215,6 +215,9 @@ jobs:
           MAX_RETRIES: 3
         run: |
           set -x
+          if [[ "${PLATFORM}" == *"/"* ]]; then
+            PLATFORM=$(echo "${PLATFORM}" | cut -d'/' -f1)
+          fi
           podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${PLATFORM}"
           for i in $(seq "${MAX_RETRIES}"); do
             podman push --digestfile=/tmp/digestfile "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${PLATFORM}" && break || sleep $((5 * i));
@@ -350,8 +353,6 @@ jobs:
         with:
           tags: |
             type=raw,value=${{ env.DEFAULT_TAG}}
-            type=raw,value=${{ env.MAJOR_VERSION }}
-            type=raw,value=${{ env.MAJOR_VERSION }}.{{date 'YYYYMMDD'}}
             type=ref,event=pr
           labels: |
             io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/refs/heads/main/README.md
