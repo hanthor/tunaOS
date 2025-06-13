@@ -254,176 +254,26 @@ rechunk_cleanup:
     fi
     just sudoif podman volume rm cache_ostree || echo "Volume 'cache_ostree' not found."
 
-# Command: _rootful_load_image
-# Description: This script checks if the current user is root or running under just sudoif . If not, it attempts to resolve the image tag using podman inspect.
-#              If the image is found, it loads it into rootful podman. If the image is not found, it pulls it from the repository.
-#
-# Parameters:
-#   $target_image - The name of the target image to be loaded or pulled.
-#   $tag - The tag of the target image to be loaded or pulled. Default is 'default_tag'.
-#
-# Example usage:
-#   _rootful_load_image my_image latest
-#
-# Steps:
-# 1. Check if the script is already running as root or under just sudoif .
-# 2. Check if target image is in the non-root podman container storage)
-# 3. If the image is found, load it into rootful podman using podman scp.
-# 4. If the image is not found, pull it from the remote repository into reootful podman.
-
-_rootful_load_image $target_image=image_name $tag=default_tag:
+sync_image SID DID=SID reverse='false':
     #!/usr/bin/env bash
     set -eoux pipefail
 
-    # Check if already running as root or under just sudoif 
-    if [[ "${UID}" -eq "0" ]]; then # Already root
-        echo "INFO: Running as root. Assuming image '${target_image}:${tag}' is available or will be pulled to rootful storage if needed by a subsequent step."
-        # If truly running as root, podman commands will target rootful storage by default.
-        # We can check if it exists and pull if not, to be safe for subsequent root operations.
-        if ! podman image exists "${target_image}:${tag}"; then
-            echo "INFO: Image '${target_image}:${tag}' not found in rootful storage. Attempting to pull."
-            podman pull "${target_image}:${tag}" || { echo "ERROR: Failed to pull image '${target_image}:${tag}' as root."; exit 1; }
-        fi
-        exit 0
-    fi
-
-    # Not running as root, so this is a rootless user context.
-    # 1. Get rootless image ID
-    echo "INFO: Checking for image '${target_image}:${tag}' in user's (UID ${UID}) rootless storage."
-    set +e
-    rootless_image_id=$(podman image inspect --format '{{{{.Id}}}}' "${target_image}:${tag}" 2>/dev/null)
-    rootless_rc=$?
-    set -e
-
-    if [[ $rootless_rc -ne 0 ]]; then
-        echo "INFO: Image '${target_image}:${tag}' not found in user's rootless storage. Will attempt to pull directly to rootful storage via just sudoif ."
-        just just sudoif if podman pull "${target_image}:${tag}"
-        exit 0
-    fi
-    echo "INFO: Found image '${target_image}:${tag}' (ID: ${rootless_image_id}) in user's rootless storage."
-
-    # 2. Check rootful storage and compare IDs
-    set +e
-    just just sudoif if podman image exists "${target_image}:${tag}"
-    rootful_exists_rc=$?
-    set -e
-
-    current_rootful_image_id=""
-    if [[ $rootful_exists_rc -eq 0 ]]; then # Rootful image exists
-        echo "INFO: Image '${target_image}:${tag}' found in rootful storage. Checking ID."
-        current_rootful_image_id=$(just just sudoif if podman image inspect --format "{{{{.Id}}}}" "${target_image}:${tag}")
-
-        if [[ "${current_rootful_image_id}" == "${rootless_image_id}" ]]; then
-            echo "INFO: Rootful image ID (${current_rootful_image_id}) matches user's rootless image ID. No action needed."
-            exit 0
-        else
-            echo "INFO: Rootful image ID (${current_rootful_image_id}) differs from user's rootless ID (${rootless_image_id}). Replacing rootful image."
-            just just sudoif if podman rmi "${target_image}:${tag}" || echo "WARN: Failed to remove old rootful image ('${target_image}:${tag}', ID: ${current_rootful_image_id}). Proceeding with copy."
-        fi
-    else
-        echo "INFO: Image '${target_image}:${tag}' not found in rootful storage."
-    fi
-
-    echo "INFO: Copying image '${target_image}:${tag}' from user's rootless storage (ID: ${rootless_image_id}) to rootful storage."
-    COPYTMP=$(mktemp -p "${PWD}" -d -t _build_podman_scp.XXXXXXXXXX)
-    just just sudoif if TMPDIR=${COPYTMP} podman image scp "${UID}@localhost::${target_image}:${tag}" "root@localhost::${target_image}:${tag}"
-    rm -rf "${COPYTMP}"
-    echo "INFO: Image copy to rootful storage complete."
-
-# Command: _rootless_unload_image
-# Description: This script, when run as root or via just sudoif , attempts to ensure an image
-#              is present in the original just sudoif _USER's rootless Podman storage and then
-#              removes it from the rootful (system) Podman storage.
-#              If not run via just sudoif (i.e., just sudoif _USER is not set), or if run directly as root
-#              without a just sudoif _USER, it cannot determine the target rootless user and will exit.
-#
-# Parameters:
-#   $target_image - The name of the target image.
-#   $tag - The tag of the target image.
-#
-# Example usage (typically called from another recipe that is run with just sudoif ):
-#   _rootless_unload_image my_image latest
-#
-# Steps:
-# 1. Check if running via just sudoif and just sudoif _USER is set.
-# 2. Check if the image exists in rootful (system) Podman storage.
-# 3. Check if the image exists in just sudoif _USER's rootless Podman storage.
-# 4. If not in rootless, copy it from rootful to just sudoif _USER's rootless storage.
-# 5. If the image is successfully in just sudoif _USER's rootless storage, remove it from rootful storage.
-
-_rootless_unload_image $target_image=image_name $tag=default_tag:
-    #!/usr/bin/env bash
-    set -eoux pipefail # Using -e, manage exit codes carefully for checks
-
-    if [[ -z "${just sudoif _USER:-}" ]]; then
-        if [[ "${UID}" -eq "0" ]]; then
-            echo "INFO: Running as root directly, not via just sudoif . Cannot determine target rootless user for unload. Skipping."
-            exit 0
-        else
-            echo "INFO: Not running under just sudoif . Image is assumed to be in rootless context or operation is not applicable. Skipping."
+    if [[ "{{reverse}}" == 'true' ]]; then
+        if [[ -z "${SUDO_USER:-}" ]] || ! podman image exists "{{SID}}"; then
             exit 0
         fi
-    fi
-
-    original_uid=$(id -u "${just sudoif _USER}")
-    echo "INFO: Attempting to unload '${target_image}:${tag}' from rootful to ${just sudoif _USER}'s (UID ${original_uid}) rootless storage."
-
-    # 1. Get rootful image ID
-    echo "INFO: Checking for image '${target_image}:${tag}' in rootful storage."
-    set +e
-    rootful_image_id=$(podman image inspect --format '{{{{.Id}}}}' "${target_image}:${tag}" 2>/dev/null)
-    rootful_rc=$?
-    set -e
-
-    if [[ $rootful_rc -ne 0 ]]; then
-        echo "INFO: Image '${target_image}:${tag}' not found in rootful storage. Nothing to unload."
-        exit 0
-    fi
-    echo "INFO: Found image '${target_image}:${tag}' (ID: ${rootful_image_id}) in rootful storage."
-
-    # 2. Check just sudoif _USER's rootless storage and compare IDs
-    echo "INFO: Checking for image '${target_image}:${tag}' in ${just sudoif _USER}'s rootless storage."
-    set +e
-    user_rootless_image_id=$(just sudoif -i -u "${just sudoif _USER}" podman image inspect --format '{{{{.Id}}}}' "${target_image}:${tag}" 2>/dev/null)
-    user_rootless_rc=$?
-    set -e
-
-    copy_to_user_needed=true
-    if [[ $user_rootless_rc -eq 0 ]]; then # User's rootless image exists
-        echo "INFO: Image '${target_image}:${tag}' found in ${just sudoif _USER}'s rootless storage (ID: ${user_rootless_image_id})."
-        if [[ "${user_rootless_image_id}" == "${rootful_image_id}" ]]; then
-            echo "INFO: ${just sudoif _USER}'s rootless image ID matches rootful ID. No copy needed."
-            copy_to_user_needed=false
-        else
-            echo "INFO: ${just sudoif _USER}'s rootless image ID (${user_rootless_image_id}) differs from rootful ID (${rootful_image_id}). Replacing user's image."
-            just sudoif -i -u "${just sudoif _USER}" podman rmi "${target_image}:${tag}" || echo "WARN: Failed to remove old image ('${target_image}:${tag}', ID: ${user_rootless_image_id}) from ${just sudoif _USER}'s storage. Proceeding with copy."
-        fi
+        TARGET_UID=$(id -u "${SUDO_USER}")
+        SOURCE_EP="root@localhost::{{SID}}"
+        DEST_EP="${TARGET_UID}@localhost::{{DID}}"
+        just sudoif -i -u "${SUDO_USER}" podman image rm "{{DID}}" >/dev/null 2>&1 || true
+        podman image scp "${SOURCE_EP}" "${DEST_EP}"
+        podman image rm "{{SID}}"
     else
-        echo "INFO: Image '${target_image}:${tag}' not found in ${just sudoif _USER}'s rootless storage."
-    fi
-
-    if [[ "$copy_to_user_needed" == true ]]; then
-        echo "INFO: Copying image '${target_image}:${tag}' from rootful (ID: ${rootful_image_id}) to ${just sudoif _USER}'s rootless storage."
-        COPYTMP_UNLOAD=$(mktemp -p "${PWD}" -d -t _build_podman_scp_unload.XXXXXXXXXX)
-        # This podman image scp is run by the current user (root/just sudoif )
-        if ! TMPDIR="${COPYTMP_UNLOAD}" podman image scp "root@localhost::${target_image}:${tag}" "${original_uid}@localhost::${target_image}:${tag}"; then
-            echo "ERROR: Failed to copy '${target_image}:${tag}' to ${just sudoif _USER}'s rootless storage."
-            rm -rf "${COPYTMP_UNLOAD}"
-            exit 1 # Critical failure if copy fails
+        if ! podman image exists "{{SID}}"; then
+            exit 1
         fi
-        rm -rf "${COPYTMP_UNLOAD}"
-        echo "INFO: Successfully copied '${target_image}:${tag}' to ${just sudoif _USER}'s rootless storage."
-    fi
-
-    echo "INFO: Removing '${target_image}:${tag}' (ID: ${rootful_image_id}) from rootful storage."
-    if podman rmi "${target_image}:${tag}"; then
-        echo "INFO: Successfully removed '${target_image}:${tag}' from rootful storage."
-    else
-        # This might not be a critical error if other tags point to it or it's in use.
-        echo "WARNING: 'podman rmi ${target_image}:${tag}' failed for rootful storage. It might be in use or pointed to by other tags."
-    fi
-
-    echo "INFO: Unload operation for '${target_image}:${tag}' to ${just sudoif _USER} complete."
+        SOURCE_EP="${UID}@localhost::{{SID}}"
+        DEST_EP="root@localhost::{{DID}}"
 
 # Build a bootc bootable image using Bootc Image Builder (BIB)
 # Converts a container image to a bootable image
@@ -434,7 +284,7 @@ _rootless_unload_image $target_image=image_name $tag=default_tag:
 #   config: The configuration file to use for the build (default: image.toml)
 
 # Example: just _rebuild-bib localhost/fedora latest qcow2 image.toml
-_build-bib $target_image $tag $type $config: (_rootful_load_image target_image tag)
+_build-bib $target_image $tag $type $config: (sync_image target_image tag)
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -640,7 +490,7 @@ lint:
 format:
     /usr/bin/find . -iname "*.sh" -type f -exec shfmt --write "{}" ';'
 
-run-bootc-libvirt $target_image=("localhost/" + image_name) $tag=default_tag $image_name=image_name: (_rootful_load_image target_image tag)
+run-bootc-libvirt $target_image=("localhost/" + image_name) $tag=default_tag $image_name=image_name: (sync_image target_image tag)
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -648,18 +498,18 @@ run-bootc-libvirt $target_image=("localhost/" + image_name) $tag=default_tag $im
 
     # clean up previous builds
     echo "Cleaning up previous build"
-    just just sudoif if rm -rf "output/${image_name}_${tag}.raw" || true
+    just sudoif if rm -rf "output/${image_name}_${tag}.raw" || true
     mkdir -p "output/"
 
      # build the disk image
     truncate -s 20G output/${image_name}_${tag}.raw
-    # just just sudoif if podman run \
+    # just sudoif if podman run \
     # --rm --privileged \
     # -v /var/lib/containers:/var/lib/containers \
     # quay.io/centos-bootc/centos-bootc:stream10 \
     # /usr/libexec/bootc-base-imagectl rechunk \
     # ${target_image}:${tag} ${target_image}:re${tag}
-    just just sudoif if podman run \
+    just sudoif if podman run \
     --pid=host --network=host --privileged \
     --security-opt label=type:unconfined_t \
     -v $(pwd)/output:/output:Z \
