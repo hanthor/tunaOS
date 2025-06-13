@@ -130,6 +130,7 @@ jobs:
         env:
           FLAVOR: ${{ inputs.flavor }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          PLATFORM: ${{ matrix.platform }}
         run: |
           set -x
           just=$(which just)
@@ -143,7 +144,7 @@ jobs:
             ENABLE_DX=1
           fi
 
-          sudo $just build "${IMAGE_NAME}" "${DEFAULT_TAG}" "${ENABLE_DX}" "${ENABLE_GDX}"
+          sudo $just build "${IMAGE_NAME}" "${DEFAULT_TAG}" "${ENABLE_DX}" "${ENABLE_GDX}" "${PLATFORM}"
 
       - name: Setup Syft
         id: setup-syft

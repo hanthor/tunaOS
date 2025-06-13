@@ -96,7 +96,7 @@ sudoif command *args:
 #
 
 # Build the image using the specified parameters
-build $target_image=image_name $tag=default_tag $dx="0" $gdx="0":
+build $target_image=image_name $tag=default_tag $dx="0" $gdx="0" $platform="linux/amd64":
     #!/usr/bin/env bash
 
     # Get Version
@@ -113,6 +113,7 @@ build $target_image=image_name $tag=default_tag $dx="0" $gdx="0":
     fi
 
     podman build \
+        --platform "${platform:-linux/amd64}" \
         "${BUILD_ARGS[@]}" \
         --pull=newer \
         --tag "${target_image}:${tag}" \
