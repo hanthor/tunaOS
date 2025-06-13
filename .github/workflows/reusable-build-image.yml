@@ -215,6 +215,9 @@ jobs:
           MAX_RETRIES: 3
         run: |
           set -x
+          if [[ "${PLATFORM}" == *"/"* ]]; then
+            PLATFORM=$(echo "${PLATFORM}" | cut -d'/' -f1)
+          fi
           podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${PLATFORM}"
           for i in $(seq "${MAX_RETRIES}"); do
             podman push --digestfile=/tmp/digestfile "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${PLATFORM}" && break || sleep $((5 * i));
