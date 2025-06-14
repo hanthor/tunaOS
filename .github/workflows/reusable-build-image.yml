@@ -90,7 +90,7 @@ jobs:
 
   build_push:
     name: Build and push image
-    runs-on: ${{ contains(matrix.platform, 'amd64') && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
+    runs-on: ${{ contains(matrix.platform, 'amd64') && 'ubuntu-latest' || 'ubuntu-24.04-arm' }}
     timeout-minutes: 60
     needs: generate_matrix
     strategy:
