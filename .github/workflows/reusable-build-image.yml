@@ -134,6 +134,7 @@ jobs:
         run: |
           set -x
           just=$(which just)
+          PLATFORM=linux/$(echo "${PLATFORM}")
 
           ENABLE_GDX=0
           ENABLE_DX=0
