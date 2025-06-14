@@ -348,7 +348,7 @@ jobs:
           echo "MAJOR_VERSION_NUMBER=${numbers_only}" >> "${GITHUB_ENV}"
 
       - name: Image Metadata
-        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5
+        uses: docker/metadata-action@b798ed8388581f6f002541048b6458ca2c4ba442 # v5
         id: metadata
         with:
           tags: |
