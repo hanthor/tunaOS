@@ -414,11 +414,25 @@ jobs:
         if: ${{ inputs.publish }}
         env:
           MANIFEST: ${{ steps.create-manifest.outputs.MANIFEST }}
-          DIGESTS_JSON: ${{ steps.load-outputs.outputs.DIGESTS_JSON }}
+          DIGESTS_JSON: ${{ steps.load-outputs.outputs.DIGESTS_JSON }} # Suspect source
           LABELS: ${{ steps.metadata.outputs.labels }}
           PLATFORMS: "${{ inputs.platforms }}"
         run: |
-          DIGESTS=$(echo "$DIGESTS_JSON" | jq -c '.')
+          echo "DEBUG: Value of DIGESTS_JSON received by Populate Manifest:"
+          echo "'${DIGESTS_JSON}'" # Print with quotes to see if it's empty
+          echo "DEBUG: Length of DIGESTS_JSON: ${#DIGESTS_JSON}"
+          echo "DEBUG: Checking if DIGESTS_JSON is valid JSON:"
+          echo "${DIGESTS_JSON}" | jq . || echo "DIGESTS_JSON is NOT valid JSON or is empty."
+          echo "-------------------------------------"
+          # --- END DEBUG LINES ---
+
+          DIGESTS=$(echo "$DIGESTS_JSON" | jq -c '.') # This is where DIGESTS is set. If DIGESTS_JSON is bad, DIGESTS will be bad.
+
+          echo "DEBUG: Value of DIGESTS after initial jq processing:"
+          echo "'${DIGESTS}'" # Print with quotes
+          echo "DEBUG: Length of DIGESTS: ${#DIGESTS}"
+          echo "-------------------------------------"
+
           # Turn the comma separated inputs.platforms string into a list
           platforms=()
           IFS=',' read -r -a platforms <<< "${PLATFORMS}"
@@ -428,15 +442,16 @@ jobs:
           for p in "${platforms[@]}"; do
             echo "  - '${p}' (length: ${#p})"
           done
-          PLATFORMS_CLEANED="$(echo "${PLATFORMS}" | tr -d '[:space:]')" # Remove all whitespace
-          platforms=()
-          IFS=',' read -r -a platforms <<< "${PLATFORMS_CLEANED}"
+          # Removed the duplicate PLATFORMS_CLEANED block for clarity in this debug.
+          # Keep it if you want to be extra defensive, but the debug shows it's not the root cause.
+
           for platform_original in "${platforms[@]}"; do
-            # Convert original platform (e.g., "linux/amd64/v2") to safe key (e.g., "linux-amd64-v2") for lookup
             platform_key_for_lookup="${platform_original//\//-}"
             echo "DEBUG: Inside loop: platform_original='${platform_original}'"
             echo "DEBUG: Inside loop: platform_key_for_lookup='${platform_key_for_lookup}' (length: ${#platform_key_for_lookup})"
-            platform_key_for_lookup="${platform_original//\//-}"
+
+            # This is the line that caused the error.
+            # The '.[env.PLATFORM_KEY_FOR_LOOKUP]' is correct, so the issue must be in $DIGESTS
             digest="$(echo "$DIGESTS" | jq -r '.[env.PLATFORM_KEY_FOR_LOOKUP]' --arg PLATFORM_KEY_FOR_LOOKUP "${platform_key_for_lookup}")"
 
             if [ "$digest" == "null" ] || [ -z "$digest" ]; then
