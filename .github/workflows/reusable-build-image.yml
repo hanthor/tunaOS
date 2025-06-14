@@ -425,7 +425,7 @@ jobs:
           for platform_original in "${platforms[@]}"; do
             # Convert original platform (e.g., "linux/amd64/v2") to safe key (e.g., "linux-amd64-v2") for lookup
             platform_key_for_lookup="${platform_original//\//-}"
-            digest="$(echo "$DIGESTS" | jq -r ".${platform_key_for_lookup}")"
+            digest="$(echo "$DIGESTS" | jq -r '.[env.PLATFORM_KEY_FOR_LOOKUP]' --arg PLATFORM_KEY_FOR_LOOKUP "${platform_key_for_lookup}")"
 
             if [ "$digest" == "null" ] || [ -z "$digest" ]; then
               echo "Error: Digest not found for platform ${platform_original} (looked for key ${platform_key_for_lookup} in DIGESTS_JSON: $DIGESTS)"
