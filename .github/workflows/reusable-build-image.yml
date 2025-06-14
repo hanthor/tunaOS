@@ -83,7 +83,8 @@ jobs:
 
           MATRIX="{\"include\":[]}"
           for platform in "${platforms[@]}"; do
-            MATRIX="$(echo "${MATRIX}" | jq ".include += [{\"platform\": \"${platform}\"}]")"
+            safeplatform="${platform//\//-}" # Replace all / with -
+            MATRIX="$(echo "${MATRIX}" | jq ".include += [{\"platform\": \"${platform}\", \"safeplatform\": \"${safeplatform}\"}]")"
           done
           echo "matrix=$(echo "${MATRIX}" | jq -c '.')" >> $GITHUB_OUTPUT
 
@@ -213,15 +214,13 @@ jobs:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           IMAGE_DIGEST: ${{ steps.load.outputs.digest }}
           PLATFORM: ${{ matrix.platform }}
+          SAFE_PLATFORM: ${{ matrix.safeplatform }}
           MAX_RETRIES: 3
         run: |
           set -x
-          if [[ "${PLATFORM}" == *"/"* ]]; then
-            PLATFORM=$(echo "${PLATFORM}" | cut -d'/' -f1)
-          fi
-          podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${PLATFORM}"
+          podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${SAFE_PLATFORM}"
           for i in $(seq "${MAX_RETRIES}"); do
-            podman push --digestfile=/tmp/digestfile "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${PLATFORM}" && break || sleep $((5 * i));
+            podman push --digestfile=/tmp/digestfile "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${SAFE_PLATFORM}" && break || sleep $((5 * i));
           done
           REMOTE_IMAGE_DIGEST=$(cat /tmp/digestfile)
           echo "remote_image_digest=${REMOTE_IMAGE_DIGEST}" >> $GITHUB_OUTPUT
@@ -275,20 +274,17 @@ jobs:
         if: ${{ inputs.publish }}
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          PLATFORM: ${{ matrix.platform }}
+          SAFE_PLATFORM: ${{ matrix.safeplatform }}
           DIGEST: ${{ steps.push.outputs.remote_image_digest }}
         run: |
           mkdir -p /tmp/outputs/digests
-          if [[ "${PLATFORM}" == *"/"* ]]; then
-            PLATFORM=$(echo "${PLATFORM}" | cut -d'/' -f2)
-          fi
-          echo "${DIGEST}" > "/tmp/outputs/digests/${IMAGE_NAME}-${PLATFORM}.txt"
+          echo "${DIGEST}" > "/tmp/outputs/digests/${IMAGE_NAME}-${SAFE_PLATFORM}.txt"
 
       - name: Upload Output Artifacts
         if: ${{ inputs.publish }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: ${{ env.IMAGE_NAME }}-${{ matrix.platform }}
+          name: ${{ env.IMAGE_NAME }}-${{ matrix.safeplatform }}
           retention-days: 1
           if-no-files-found: error
           path: |
@@ -387,14 +383,20 @@ jobs:
       - name: Load Outputs
         if: ${{ inputs.publish }}
         id: load-outputs
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
         run: |
+          set -e
           DIGESTS_JSON="$(jq -n '{}')"
           for digest_file in /tmp/artifacts/*.txt; do
-            # Extract the platform from the file name
-            PLATFORM="$(basename "${digest_file}" | rev | cut -d'-' -f1 | rev | cut -d'.' -f1)"
+            FILENAME_ONLY="$(basename "${digest_file}")"
+            # Extract the safeplatform key from the filename (e.g., "bluefin-linux-amd64-v2.txt" -> "linux-amd64-v2")
+            # Remove prefix "${IMAGE_NAME}-"
+            KEY_PART="${FILENAME_ONLY#${IMAGE_NAME}-}"
+            # Remove suffix ".txt"
+            PLATFORM_KEY="${KEY_PART%.txt}"
             DIGEST="$(cat "${digest_file}")"
-            # Add the platform and digest to the JSON object
-            DIGESTS_JSON="$(echo "${DIGESTS_JSON}" | jq --arg key "${PLATFORM}" --arg value "${DIGEST}" '. + {($key): $value}')"
+            DIGESTS_JSON="$(echo "${DIGESTS_JSON}" | jq --arg key "${PLATFORM_KEY}" --arg value "${DIGEST}" '. + {($key): $value}')"
           done
           echo "DIGESTS_JSON=$(echo "$DIGESTS_JSON" | jq -c '.')" >> "${GITHUB_OUTPUT}"
 
@@ -417,13 +419,23 @@ jobs:
           PLATFORMS: "${{ inputs.platforms }}"
         run: |
           DIGESTS=$(echo "$DIGESTS_JSON" | jq -c '.')
-          # turn the comma separated string into a list
+          # Turn the comma separated inputs.platforms string into a list
           platforms=()
           IFS=',' read -r -a platforms <<< "${PLATFORMS}"
-          for platform in ${platforms[@]}; do
-            digest="$(echo $DIGESTS | jq -r ".$platform")"
-            echo "Adding ${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest} for ${platform}"
-            podman manifest add "${MANIFEST}" "${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest}" --arch "${platform}"
+          for platform_original in "${platforms[@]}"; do
+            # Convert original platform (e.g., "linux/amd64/v2") to safe key (e.g., "linux-amd64-v2") for lookup
+            platform_key_for_lookup="${platform_original//\//-}"
+            digest="$(echo "$DIGESTS" | jq -r ".${platform_key_for_lookup}")"
+
+            if [ "$digest" == "null" ] || [ -z "$digest" ]; then
+              echo "Error: Digest not found for platform ${platform_original} (looked for key ${platform_key_for_lookup} in DIGESTS_JSON: $DIGESTS)"
+              exit 1
+            fi
+
+            # Extract arch/variant (e.g., "amd64", "amd64/v2") from original platform string
+            arch_for_podman="${platform_original#linux/}"
+            echo "Adding to manifest: ${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest} for os: linux, arch: ${arch_for_podman} (original platform: ${platform_original})"
+            podman manifest add "${MANIFEST}" "docker://${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest}" --os linux --arch "${arch_for_podman}"
           done
 
           # Apply the labels to the manifest (separated by newlines)
