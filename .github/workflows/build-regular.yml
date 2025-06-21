@@ -35,4 +35,4 @@ jobs:
       rechunk: ${{ github.event_name != 'pull_request' }}
       sbom: ${{ github.event_name != 'pull_request' }}
       publish: ${{ github.event_name != 'pull_request' }}
-      platforms: ${{ github.ref_name == 'a10-server' && 'amd64,arm64,amd64/v2' || github.ref_name == 'a10' && 'amd64,arm64,amd64/v2' || github.ref_name == 'a10s' && 'amd64,arm64,amd64/v2' ||'amd64' }}
+      platforms: ${{ github.ref_name == 'a10-server' && 'linux/arm64,linux/amd64,linux/amd64/v2' || github.ref_name == 'a10' && 'linux/arm64,linux/amd64,linux/amd64/v2'  || github.ref_name == 'a10s' && 'linux/arm64,linux/amd64,linux/amd64/v2'  || 'linux/arm64,linux/amd64'  }}
