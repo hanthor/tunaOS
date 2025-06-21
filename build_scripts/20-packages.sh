@@ -53,6 +53,7 @@ dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:packages install \
 	ublue-os-signing \
 	ublue-os-udev-rules \
 	ublue-os-update-services \
+ 	ublue-os-libvirt-workarounds \
 	ublue-{motd,bling,rebase-helper,setup-services,polkit-rules,brew} \
 	uupd \
 	bluefin-schemas
