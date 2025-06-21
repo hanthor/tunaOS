@@ -6,6 +6,7 @@ on:
       - main
       - F42
       - a10
+      - a10-server
       - a10s
       - a10-server
   push:
@@ -13,6 +14,7 @@ on:
       - main
       - F42
       - a10
+      - a10-server
       - a10s
       - a10-server
   schedule:
