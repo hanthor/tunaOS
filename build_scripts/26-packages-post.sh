@@ -3,7 +3,7 @@
 set -xeuo pipefail
 
 
-# Offline Bluefin documentation
+# Offline Yellowfin documentation
 curl --retry 3 -Lo /tmp/bluefin.pdf https://github.com/ublue-os/bluefin-docs/releases/download/0.1/bluefin.pdf
 install -Dm0644 -t /usr/share/doc/bluefin/ /tmp/bluefin.pdf
 
@@ -14,7 +14,7 @@ curl --retry 3 -o /etc/flatpak/remotes.d/flathub.flatpakrepo "https://dl.flathub
 # move the custom just
 mv /usr/share/ublue-os/just/61-lts-custom.just /usr/share/ublue-os/just/60-custom.just 
 
-# Generate initramfs image after installing Bluefin branding because of Plymouth subpackage
+# Generate initramfs image after installing Yellowfin branding because of Plymouth subpackage
 # Add resume module so that hibernation works
 echo "add_dracutmodules+=\" resume \"" >/etc/dracut.conf.d/resume.conf
 KERNEL_SUFFIX=""
