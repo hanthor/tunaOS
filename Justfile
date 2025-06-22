@@ -1,5 +1,5 @@
 export repo_organization := env("GITHUB_REPOSITORY_OWNER", "ublue-os")
-export image_name := env("IMAGE_NAME", "bluefin")
+export image_name := env("IMAGE_NAME", "bluefin-tuna")
 export fedora_version := env("FEDORA_VERSION", "42")
 export default_tag := env("DEFAULT_TAG", "lts")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
@@ -72,7 +72,7 @@ sudoif command *args:
 # This Justfile recipe builds a container image using Podman.
 #
 # Arguments:
-#   $target_image - The tag you want to apply to the image (default: bluefin).
+#   $target_image - The tag you want to apply to the image (default: bluefin-tuna).
 #   $tag - The tag for the image (default: lts).
 #   $dx - Enable DX (default: "0").
 #   $gdx - Enable GDX (default: "0").
@@ -80,7 +80,7 @@ sudoif command *args:
 # DX:
 #   Developer Experience (DX) is a feature that allows you to install the latest developer tools for your system.
 #   Packages include VScode, Docker, Distrobox, and more.
-# GDX: https://docs.projectbluefin.io/gdx/
+# GDX: https://docs.projectbluefin-tuna.io/gdx/
 #   GPU Developer Experience (GDX) creates a base as an AI and Graphics platform.
 #   Installs Nvidia drivers, CUDA, and other tools.
 #
@@ -90,9 +90,9 @@ sudoif command *args:
 # just build $target_image $tag $dx $gdx
 #
 # Example usage:
-#   just build bluefin lts 1 0 1
+#   just build bluefin-tuna lts 1 0 1
 #
-# This will build an image 'bluefin:lts' with DX and GDX enabled.
+# This will build an image 'bluefin-tuna:lts' with DX and GDX enabled.
 #
 
 # Build the image using the specified parameters
@@ -366,7 +366,7 @@ patch-iso-branding override="0" iso_path="output/bootiso/install.iso":
         quay.io/fedora/fedora:42 \
         bash -c 'dnf install -y lorax && \
     	mkdir /images && cd /iso_files/product && find . | cpio -c -o | gzip -9cv > /images/product.img && cd / \
-            && mkksiso --add images --volid bluefin-boot /{{ iso_path }} /output/final.iso'
+            && mkksiso --add images --volid bluefin-tuna-boot /{{ iso_path }} /output/final.iso'
 
     if [ {{ override }} -ne 0 ] ; then
         mv output/final.iso {{ iso_path }}

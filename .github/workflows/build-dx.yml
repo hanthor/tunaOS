@@ -1,4 +1,4 @@
-name: Build Bluefin LTS DX
+name: Build Albacore DX
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ on:
       - F42
   push:
     branches:
-      - main
+      
       - a10s
       - a10
       - c10s
@@ -28,7 +28,7 @@ jobs:
     uses: ./.github/workflows/reusable-build-image.yml
     secrets: inherit
     with:
-      image-name: bluefin-dx
+      image-name: bluefin-tuna-dx
       flavor: dx
       major-version: ${{ github.ref_name == 'a10' && '10' || github.ref_name == 'a10s' && '10s' || github.ref_name == 'F42' && 'F42' || github.ref_name == 'main' && 'stream10' || github.ref_name }}
       default-tag: ${{ github.ref_name == 'main' && 'lts' || github.ref_name }}

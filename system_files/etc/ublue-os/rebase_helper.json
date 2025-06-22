@@ -1,6 +1,6 @@
 {
 	"dx-helper-enabled": true,
-	"image-base-name": "bluefin",
+	"image-base-name": "bluefin-tuna",
 	"available-tags": ["lts", "42"],
 	"image-date-separator": "-"
 }
