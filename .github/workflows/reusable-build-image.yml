@@ -291,7 +291,7 @@ jobs:
             /tmp/outputs/digests/*.txt
 
   manifest:
-    name: Create ${{ inputs.image-name }}:${{ inputs.centos-version }} Manifest
+    name: Create ${{ inputs.image-name }}:${{ inputs.major-version }} Manifest
     runs-on: ubuntu-latest
     if: always()
     needs:
