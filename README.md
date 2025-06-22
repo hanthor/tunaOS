@@ -1,6 +1,6 @@
-# Bluefin LTS
+# Albacore
 *Achillobator giganticus*
-This is a set of forks of [Bluefin LTS](https://github.com/ublue-os/bluefin-lts)
+This is a set of forks of [Albacore](https://github.com/hanthor/bluefin-lts)
 Currently there are 4 forks:
 - `F42` - based on Fedora 42
 - `a10s` - based on AlmaLinux Kitten 10
