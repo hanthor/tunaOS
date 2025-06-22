@@ -1,4 +1,4 @@
-# 󱍢 Welcome to Albacore
+# 󱍢 Welcome to Bluefin
 
 󱋩 `%IMAGE_NAME%:%IMAGE_TAG%`
 

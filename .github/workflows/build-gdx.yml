@@ -1,4 +1,4 @@
-name: Build Albacore GDX
+name: Build Bluefin GDX
 
 on:
   schedule:

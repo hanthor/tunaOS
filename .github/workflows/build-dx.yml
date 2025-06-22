@@ -1,4 +1,4 @@
-name: Build Albacore DX
+name: Build Bluefin DX
 
 on:
   pull_request:

@@ -1,4 +1,4 @@
-name: Build Albacore
+name: Build Bluefin
 
 on:
   pull_request:
