@@ -11,7 +11,7 @@ on:
         description: "The description of the image to build"
         required: false
         type: string
-        default: "Bluefin LTS, built on CentOS Stream with bootc"
+        default: "Albacore, built on CentOS Stream with bootc"
       flavor:
         description: "The flavor of the image to build"
         required: false
@@ -215,6 +215,9 @@ jobs:
           MAX_RETRIES: 3
         run: |
           set -x
+          if [[ "${PLATFORM}" == *"/"* ]]; then
+            PLATFORM=$(echo "${PLATFORM}" | cut -d'/' -f1)
+          fi
           podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${PLATFORM}"
           for i in $(seq "${MAX_RETRIES}"); do
             podman push --digestfile=/tmp/digestfile "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${PLATFORM}" && break || sleep $((5 * i));
@@ -288,7 +291,7 @@ jobs:
             /tmp/outputs/digests/*.txt
 
   manifest:
-    name: Create ${{ inputs.image-name }}:${{ inputs.centos-version }} Manifest
+    name: Create ${{ inputs.image-name }}:${{ inputs.major-version }} Manifest
     runs-on: ubuntu-latest
     if: always()
     needs:
@@ -307,7 +310,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          apk add jq git podman uutils bash conmon crun netavark fuse-overlayfs
+          apk add jq git podman uutils bash conmon crun netavark fuse-overlayfs libstdc++
           ln -sf /bin/bash /bin/sh
           mkdir -p /etc/containers
           echo '{"default":[{"type":"insecureAcceptAnything"}]}' | jq . > /etc/containers/policy.json
@@ -350,21 +353,19 @@ jobs:
         with:
           tags: |
             type=raw,value=${{ env.DEFAULT_TAG}}
-            type=raw,value=${{ env.MAJOR_VERSION }}
-            type=raw,value=${{ env.MAJOR_VERSION }}.{{date 'YYYYMMDD'}}
             type=ref,event=pr
           labels: |
             io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/refs/heads/main/README.md
             org.opencontainers.image.created=${{ steps.date.outputs.date }}
             org.opencontainers.image.description=${{ env.IMAGE_DESC }}
-            org.opencontainers.image.documentation=https://docs.projectbluefin.io
+            org.opencontainers.image.documentation=https://docs.projectbluefin-tuna.io
             org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/blob/main/Containerfile
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
-            org.opencontainers.image.url=https://projectbluefin.io
+            org.opencontainers.image.url=https://projectbluefin-tuna.io
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.version=${{ env.MAJOR_VERSION }}
             io.artifacthub.package.deprecated=false
-            io.artifacthub.package.keywords=bootc,centos,bluefin,ublue,universal-blue
+            io.artifacthub.package.keywords=bootc,centos,bluefin-tuna,ublue,universal-blue
             io.artifacthub.package.license=Apache-2.0
             io.artifacthub.package.logo-url=https://avatars.githubusercontent.com/u/120078124?s=200&v=4
             io.artifacthub.package.maintainers=[{\"name\":\"tulilirockz\",\"email\":\"tulilirockz@outlook.com\"},{\"name\":\"castrojo\",\"email\":\"jorge.castro@gmail.com\"}]

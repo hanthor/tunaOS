@@ -6,12 +6,10 @@ dnf install -y \
 	python3-ramalama
 
 # VSCode on the base image!
-dnf config-manager addrepo --from-repofile="https://packages.microsoft.com/yumrepos/vscode"
-dnf config-manager --set-disabled packages.microsoft.com_yumrepos_vscode
-update-crypto-policies --set LEGACY
-rpm --import https://packages.microsoft.com/keys/microsoft.asc
-dnf -y --enablerepo packages.microsoft.com_yumrepos_vscode install code
-update-crypto-policies --set DEFAULT
+sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\nautorefresh=1\ntype=rpm-md\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" | sudo tee /etc/yum.repos.d/vscode.repo > /dev/null
+dnf check-update
+sudo dnf install -y code
 
 dnf config-manager addrepo --from-repofile="https://download.docker.com/linux/fedora/docker-ce.repo"
 dnf config-manager --set-disabled docker-ce-stable
