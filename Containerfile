@@ -9,7 +9,7 @@ FROM quay.io/almalinuxorg/almalinux-bootc:10-kitten
 
 ARG ENABLE_DX="${ENABLE_DX:-0}"
 ARG ENABLE_GDX="${ENABLE_GDX:-0}"
-ARG IMAGE_NAME="${IMAGE_NAME:-bluefin}"
+ARG IMAGE_NAME="${IMAGE_NAME:-albacore}"
 ARG IMAGE_VENDOR="${IMAGE_VENDOR:-ublue-os}"
 ARG MAJOR_VERSION="${MAJOR_VERSION:-10-kitten}"
 ARG SHA_HEAD_SHORT="${SHA_HEAD_SHORT:-deadbeef}"

@@ -1,22 +1,18 @@
-name: Build Bluefin LTS
+name: Build Yellowfin
 
 on:
   pull_request:
     branches:
-      - main
       - F42
       - a10
       - a10-server
       - a10s
-      - a10-server
   push:
     branches:
-      - main
       - F42
       - a10
       - a10-server
       - a10s
-      - a10-server
   schedule:
     - cron: "0 1 * * TUE" # Every Tuesday at 1am UTC
   merge_group:

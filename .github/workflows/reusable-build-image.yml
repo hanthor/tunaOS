@@ -11,7 +11,7 @@ on:
         description: "The description of the image to build"
         required: false
         type: string
-        default: "Bluefin LTS, built on CentOS Stream with bootc"
+        default: "Yellowfin, built on CentOS Stream with bootc"
       flavor:
         description: "The flavor of the image to build"
         required: false
