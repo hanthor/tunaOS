@@ -1,4 +1,4 @@
-# 󱍢 Welcome to Bluefin LTS
+# 🐟 Welcome to Albacore Server
 
 󱋩 `%IMAGE_NAME%:%IMAGE_TAG%`
 
