@@ -1,0 +1,7 @@
+polkit.addRule(function(action, subject) {                    
+          if (action.id == "org.libvirt.unix.manage" &&             
+              (subject.isInGroup("libvirt") ||                      
+    subject.isInGroup("wheel"))) {                                  
+              return polkit.Result.YES;                             
+          }                                                         
+      });
