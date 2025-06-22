@@ -3,7 +3,7 @@
 set -xeuo pipefail
 
 FLAVOR="gdx"
-IMAGE_NAME="bluefin-${FLAVOR}"
+IMAGE_NAME="albacore-server-${FLAVOR}"
 IMAGE_REF="ostree-image-signed:docker://ghcr.io/ublue-os/bluefin-${FLAVOR}"
 export FLAVOR
 export IMAGE_NAME

@@ -1,5 +1,5 @@
 export repo_organization := env("GITHUB_REPOSITORY_OWNER", "ublue-os")
-export image_name := env("IMAGE_NAME", "bluefin")
+export image_name := env("IMAGE_NAME", "albacore-server")
 export centos_version := env("CENTOS_VERSION", "10")
 export default_tag := env("DEFAULT_TAG", "a10-server")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
@@ -72,7 +72,7 @@ sudoif command *args:
 # This Justfile recipe builds a container image using Podman.
 #
 # Arguments:
-#   $target_image - The tag you want to apply to the image (default: bluefin).
+#   $target_image - The tag you want to apply to the image (default: albacore).
 #   $tag - The tag for the image (default: lts).
 #   $dx - Enable DX (default: "0").
 #   $gdx - Enable GDX (default: "0").
@@ -90,9 +90,9 @@ sudoif command *args:
 # just build $target_image $tag $dx $gdx
 #
 # Example usage:
-#   just build bluefin lts 1 0
+#   just build albacore lts 1 0
 #
-# This will build an image 'bluefin:a10-server' with DX and GDX enabled.
+# This will build an image 'albacore:a10-server' with DX and GDX enabled.
 #
 
 # Build the image using the specified parameters

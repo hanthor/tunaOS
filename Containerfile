@@ -8,7 +8,7 @@ FROM quay.io/almalinuxorg/almalinux-bootc:10
 
 ARG ENABLE_DX="${ENABLE_DX:-0}"
 ARG ENABLE_GDX="${ENABLE_GDX:-0}"
-ARG IMAGE_NAME="${IMAGE_NAME:-bluefin-server}"
+ARG IMAGE_NAME="${IMAGE_NAME:-albacore-server}"
 ARG IMAGE_VENDOR="${IMAGE_VENDOR:-ublue-os}"
 ARG MAJOR_VERSION="${MAJOR_VERSION:-10}"
 ARG SHA_HEAD_SHORT="${SHA_HEAD_SHORT:-deadbeef}"
