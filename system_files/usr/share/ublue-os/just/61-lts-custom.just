@@ -3,7 +3,7 @@ install-system-flatpaks:
     flatpak remote-add --if-not-exists --system flathub https://flathub.org/repo/flathub.flatpakrepo
     xargs flatpak --system -y install --or-update < /etc/ublue-os/system-flatpaks.list
 
-bluefin-cli:
+albacore-cli:
     /usr/libexec/ublue-bling
 
 alias switch-stream := rebase-helper

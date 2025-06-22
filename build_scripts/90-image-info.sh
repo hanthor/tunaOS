@@ -20,7 +20,7 @@ cat >$IMAGE_INFO <<EOF
 EOF
 
 OLD_PRETTY_NAME="$(sh -c '. /usr/lib/os-release ; echo $NAME $VERSION')"
-IMAGE_PRETTY_NAME="Bluefin LTS"
+IMAGE_PRETTY_NAME="Albacore"
 HOME_URL="https://projectbluefin.io"
 DOCUMENTATION_URL="https://docs.projectbluefin.io"
 SUPPORT_URL="https://github.com/ublue-os/bluefin-lts/issues/"
@@ -46,6 +46,6 @@ EOF
 tee -a /usr/lib/os-release <<EOF
 DOCUMENTATION_URL="${DOCUMENTATION_URL}"
 SUPPORT_URL="${SUPPORT_URL}"
-DEFAULT_HOSTNAME="bluefin"
+DEFAULT_HOSTNAME="albacore"
 BUILD_ID="${SHA_HEAD_SHORT:-testing}"
 EOF
