@@ -1,4 +1,4 @@
-# 󱍢 Welcome to Bluekitten LTS
+# 🐠 Welcome to Yellowfin
 
 󱋩 `%IMAGE_NAME%:%IMAGE_TAG%`
 
