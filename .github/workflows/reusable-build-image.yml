@@ -365,7 +365,7 @@ jobs:
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.version=${{ env.MAJOR_VERSION }}
             io.artifacthub.package.deprecated=false
-            io.artifacthub.package.keywords=bootc,centos,bluefin,ublue,universal-blue
+            io.artifacthub.package.keywords=bootc,centos,yellowfin,ublue,universal-blue
             io.artifacthub.package.license=Apache-2.0
             io.artifacthub.package.logo-url=https://avatars.githubusercontent.com/u/120078124?s=200&v=4
             io.artifacthub.package.maintainers=[{\"name\":\"tulilirockz\",\"email\":\"tulilirockz@outlook.com\"},{\"name\":\"castrojo\",\"email\":\"jorge.castro@gmail.com\"}]
@@ -390,7 +390,7 @@ jobs:
           DIGESTS_JSON="$(jq -n '{}')"
           for digest_file in /tmp/artifacts/*.txt; do
             FILENAME_ONLY="$(basename "${digest_file}")"
-            # Extract the safeplatform key from the filename (e.g., "bluefin-linux-amd64-v2.txt" -> "linux-amd64-v2")
+            # Extract the safeplatform key from the filename (e.g., "yellowfin-linux-amd64-v2.txt" -> "linux-amd64-v2")
             # Remove prefix "${IMAGE_NAME}-"
             KEY_PART="${FILENAME_ONLY#${IMAGE_NAME}-}"
             # Remove suffix ".txt"

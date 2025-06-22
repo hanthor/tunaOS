@@ -34,7 +34,7 @@ OTHER_NAMES = {
 }
 
 COMMITS_FORMAT = "### Commits\n| Hash | Subject |\n| --- | --- |{commits}\n\n"
-COMMIT_FORMAT = "\n| **[{short}](https://github.com/hanthor/bluefin-lts/commit/{githash})** | {subject} |"
+COMMIT_FORMAT = "\n| **[{short}](https://github.com/hanthor/tunaos/commit/{githash})** | {subject} |"
 
 CHANGELOG_TITLE = "{tag}: {pretty}"
 CHANGELOG_FORMAT = """\
@@ -98,7 +98,7 @@ def get_images(target: str):
     for experience, de, image_flavor in product(*matrix.values()):
         img = ""
         if de == "gnome":
-            img += "bluefin"
+            img += "yellowfin"
 
         if experience == "dx":
             img += "-dx"
