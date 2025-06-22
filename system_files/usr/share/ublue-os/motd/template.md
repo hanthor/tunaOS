@@ -1,4 +1,4 @@
-# 󱍢 Welcome to Bluefin LTS
+# 󱍢 Welcome to Albacore
 
 󱋩 `%IMAGE_NAME%:%IMAGE_TAG%`
 
@@ -6,14 +6,14 @@
 | ------- | ----------- |
 | `ujust --choose`  | Show available commands  |
 | `ujust toggle-user-motd` | Toggle this banner on/off | 
-| `ujust bluefin-cli` | Enable terminal bling | 
+| `ujust albacore-cli` | Enable terminal bling | 
 | `brew help` | Manage command line packages | 
 
 NOTE: Use `ujust install-system-flatpaks` to finish the installation
 
-- **󰊤** [Issues](https://issues.projectbluefin.io)
-- **󰈙** [Documentation](http://docs.projectbluefin.io/)
-- **󰊌** [Discuss](https://community.projectbluefin.io/)
-- **󰊌** [Leave Feedback](https://feedback.projectbluefin.io)
+- **󰊤** [Issues](https://issues.projectalbacore.io)
+- **󰈙** [Documentation](http://docs.projectalbacore.io/)
+- **󰊌** [Discuss](https://community.projectalbacore.io/)
+- **󰊌** [Leave Feedback](https://feedback.projectalbacore.io)
 
 %KEY_WARN%

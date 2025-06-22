@@ -1,6 +1,6 @@
 {
 	"dx-helper-enabled": true,
-	"image-base-name": "bluefin",
+	"image-base-name": "albacore",
 	"available-tags": ["alma10", "lts"],
 	"image-date-separator": "-"
 }
