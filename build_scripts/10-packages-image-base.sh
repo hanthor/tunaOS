@@ -48,6 +48,7 @@ dnf -y install \
 	"fastfetch" \
 	"fpaste" \
 	"fzf" \
+	"git" \
 	"gdm" \
 	"glow" \
 	"gnome-bluetooth" \
