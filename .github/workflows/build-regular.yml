@@ -7,12 +7,14 @@ on:
       - a10
       - a10-server
       - a10s
+      - a10-server
   push:
     branches:
       - F42
       - a10
       - a10-server
       - a10s
+      - a10-server
   schedule:
     - cron: "0 1 * * TUE" # Every Tuesday at 1am UTC
   merge_group:

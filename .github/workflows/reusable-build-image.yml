@@ -390,7 +390,7 @@ jobs:
           DIGESTS_JSON="$(jq -n '{}')"
           for digest_file in /tmp/artifacts/*.txt; do
             FILENAME_ONLY="$(basename "${digest_file}")"
-            # Extract the safeplatform key from the filename (e.g., "yellowfin-linux-amd64-v2.txt" -> "linux-amd64-v2")
+            # Extract the safeplatform key from the filename (e.g., "bluefin-linux-amd64-v2.txt" -> "linux-amd64-v2")
             # Remove prefix "${IMAGE_NAME}-"
             KEY_PART="${FILENAME_ONLY#${IMAGE_NAME}-}"
             # Remove suffix ".txt"
