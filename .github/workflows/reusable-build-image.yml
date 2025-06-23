@@ -113,7 +113,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Mount BTRFS for podman storage
-        if: !contains(matrix.platform, 'arm64')
+        if: ${{ !contains(matrix.platform, 'arm64') }} # Corrected syntax
         uses: ublue-os/container-storage-action@main
 
       - name: Setup Just
