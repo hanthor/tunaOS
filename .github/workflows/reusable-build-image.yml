@@ -480,3 +480,26 @@ jobs:
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
         run: |
           cosign sign -y --key env://COSIGN_PRIVATE_KEY "${IMAGE}@${DIGEST}"
+  tag-image:
+    needs: manifest
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Create Tag
+        id: tag
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_REGISTRY: ${{ env.IMAGE_REGISTRY }}
+          DEFAULT_TAG: ${{ env.DEFAULT_TAG }}
+          MAJOR_VERSION: ${{ env.MAJOR_VERSION }}
+          REFS: ${{ github.ref_name }}
+        run: |
+          podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:latest"
+          podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${MAJOR_VERSION}"
+          podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${REFS}"
+          echo "tag=${IMAGE_REGISTRY}/${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
+
