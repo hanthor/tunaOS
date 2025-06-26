@@ -103,7 +103,7 @@ jobs:
 
     steps:
       - name: Install dependencies
-        if: contains(matrix.platform, 'linux-arm64')
+        if: contains(matrix.platform, 'linux/arm64')
         run: |
           sudo apt update -y
           sudo apt install -y \
@@ -113,7 +113,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Mount BTRFS for podman storage
-        if: ${{ matrix.platform != 'linux-arm64' && inputs.cleanup_runner }}
+        if: ${{ matrix.platform != 'linux/arm64' && inputs.cleanup_runner }}
         uses: ublue-os/container-storage-action@851e47db39f73b8ab592692f7e89185c9e6cf804
 
       - name: Setup Just
