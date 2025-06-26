@@ -1,4 +1,4 @@
-name: Build Albacore
+name: Build
 
 on:
   pull_request:
