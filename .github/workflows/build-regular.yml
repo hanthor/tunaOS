@@ -1,4 +1,4 @@
-name: Build Yellowfin
+name: Build
 
 on:
   pull_request:

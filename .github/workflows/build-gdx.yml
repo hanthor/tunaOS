@@ -1,4 +1,4 @@
-name: Build Yellowfin GDX
+name: Build GDX
 
 on:
   schedule:
