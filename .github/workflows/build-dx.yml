@@ -1,15 +1,8 @@
 name: Build DX
 
 on:
-  pull_request:
-    branches:
-      - a10s
-      - a10
-      - c10s
-      - F42
   push:
     branches:
-      
       - a10s
       - a10
       - c10s
