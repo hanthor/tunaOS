@@ -1,4 +1,4 @@
-name: Build Bluefin
+name: Build
 
 on:
   pull_request:
