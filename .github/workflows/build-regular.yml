@@ -1,11 +1,7 @@
-name: Build LTS
-
+name: Build Regular
 on:
   pull_request:
     branches:
-      - F42
-      - a10
-      - a10s
       - a10-server
   push:
     branches:
