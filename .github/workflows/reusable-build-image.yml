@@ -11,7 +11,7 @@ on:
         description: "The description of the image to build"
         required: false
         type: string
-        default: "Bluefin LTS, built on CentOS Stream with bootc"
+        default: "Bluefin, built on CentOS Stream with bootc"
       flavor:
         description: "The flavor of the image to build"
         required: false
@@ -102,7 +102,7 @@ jobs:
 
     steps:
       - name: Install dependencies
-        if: matrix.platform == 'arm64'
+        if: matrix.platform == 'linux/arm64'
         run: |
           sudo apt update -y
           sudo apt install -y \
@@ -111,11 +111,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Maximize build space
-        if: ${{ matrix.platform != 'arm64' && inputs.cleanup_runner }}
-        uses: ublue-os/remove-unwanted-software@cc0becac701cf642c8f0a6613bbdaf5dc36b259e # v9
-        with:
-          remove-codeql: true
+      - name: Mount BTRFS for podman storage
+        if: ${{ matrix.platform != 'linux/arm64' && inputs.cleanup_runner }}
+        uses: ublue-os/container-storage-action@main
 
       - name: Setup Just
         uses: extractions/setup-just@e33e0265a09d6d736e2ee1e0eb685ef1de4669ff # v3
@@ -148,7 +146,7 @@ jobs:
       - name: Setup Syft
         id: setup-syft
         if: ${{ inputs.sbom && inputs.publish }}
-        uses: anchore/sbom-action/download-syft@e11c554f704a0b820cbf8c51673f6945e0731532 # v0
+        uses: anchore/sbom-action/download-syft@9246b90769f852b3a8921f330c59e0b3f439d6e9 # v0
 
       - name: Generate SBOM
         id: generate-sbom
@@ -215,6 +213,9 @@ jobs:
           MAX_RETRIES: 3
         run: |
           set -x
+          if [[ "${PLATFORM}" == *"/"* ]]; then
+            PLATFORM=$(echo "${PLATFORM}" | cut -d'/' -f1)
+          fi
           podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${PLATFORM}"
           for i in $(seq "${MAX_RETRIES}"); do
             podman push --digestfile=/tmp/digestfile "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}-${PLATFORM}" && break || sleep $((5 * i));
@@ -223,7 +224,7 @@ jobs:
           echo "remote_image_digest=${REMOTE_IMAGE_DIGEST}" >> $GITHUB_OUTPUT
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
+        uses: sigstore/cosign-installer@fb28c2b6339dcd94da6e4cbcbc5e888961f6f8c3 # v3.9.0
         if: ${{ inputs.publish }}
 
       - name: Sign Image
@@ -288,7 +289,7 @@ jobs:
             /tmp/outputs/digests/*.txt
 
   manifest:
-    name: Create ${{ inputs.image-name }}:${{ inputs.centos-version }} Manifest
+    name: Create ${{ inputs.image-name }}:${{ inputs.major-version }} Manifest
     runs-on: ubuntu-latest
     if: always()
     needs:
@@ -349,11 +350,7 @@ jobs:
         id: metadata
         with:
           tags: |
-            type=raw,value=${{ github.ref_name }}
-            type=raw,value=${{ env.MAJOR_VERSION }}
-            type=raw,value=${{ env.MAJOR_VERSION }}.{{date 'YYYYMMDD'}}
-            type=raw,value=${{ env.MAJOR_VERSION_NUMBER }}
-            type=raw,value=${{ env.MAJOR_VERSION_NUMBER }}.{{date 'YYYYMMDD'}}
+            type=raw,value=${{ env.DEFAULT_TAG}}
             type=ref,event=pr
           labels: |
             io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/refs/heads/main/README.md
@@ -473,7 +470,7 @@ jobs:
           cat ${XDG_RUNTIME_DIR}/containers/auth.json > ~/.docker/config.json
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
+        uses: sigstore/cosign-installer@fb28c2b6339dcd94da6e4cbcbc5e888961f6f8c3 # v3.9.0
 
       - name: Sign Manifest
         env:
@@ -483,3 +480,26 @@ jobs:
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
         run: |
           cosign sign -y --key env://COSIGN_PRIVATE_KEY "${IMAGE}@${DIGEST}"
+  tag-image:
+    needs: manifest
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Create Tag
+        id: tag
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_REGISTRY: ${{ env.IMAGE_REGISTRY }}
+          DEFAULT_TAG: ${{ env.DEFAULT_TAG }}
+          MAJOR_VERSION: ${{ env.MAJOR_VERSION }}
+          REFS: ${{ github.ref_name }}
+        run: |
+          podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:latest"
+          podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${MAJOR_VERSION}"
+          podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${REFS}"
+          echo "tag=${IMAGE_REGISTRY}/${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
+
