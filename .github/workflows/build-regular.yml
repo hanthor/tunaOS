@@ -3,13 +3,14 @@ name: Build Regular
 on:
   pull_request:
     branches:
-      - a10-server
+      - albacore-server
   push:
     branches:
-      - F42
-      - a10
-      - a10s
-      - a10-server
+      - albacore
+      - albacore-server
+      - yellowfin
+      - bluefin-tuna
+      - main
   schedule:
     - cron: "0 1 * * TUE" # Every Tuesday at 1am UTC
   merge_group:

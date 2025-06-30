@@ -3,16 +3,18 @@ name: Build DX
 on:
   pull_request:
     branches:
-      - a10s
-      - a10
-      - c10s
-      - F42
+      - albacore
+      - albacore-server
+      - yellowfin
+      - bluefin-tuna
+      - main
   push:
-    branches:
-      - a10s
-      - a10
-      - c10s
-      - F42
+      branches:
+      - albacore
+      - albacore-server
+      - yellowfin
+      - bluefin-tuna
+      - main
   schedule:
     - cron: "0 1 * * TUE" # Every Tuesday at 1am UTC
   merge_group:
