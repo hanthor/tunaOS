@@ -87,6 +87,7 @@ jobs:
             MATRIX="$(echo "${MATRIX}" | jq ".include += [{\"platform\": \"${platform}\", \"safeplatform\": \"${safeplatform}\"}]")"
           done
           echo "matrix=$(echo "${MATRIX}" | jq -c '.')" >> $GITHUB_OUTPUT
+        
 
   build_push:
     name: Build and push image
@@ -432,14 +433,8 @@ jobs:
 
           for platform_original in "${platforms[@]}"; do
             platform_key_for_lookup="${platform_original//\//-}"
-            echo "DEBUG: Inside loop: platform_original='${platform_original}'"
-            echo "DEBUG: Inside loop: platform_key_for_lookup='${platform_key_for_lookup}' (length: ${#platform_key_for_lookup})"
 
-            # *** KEY CHANGE HERE: Pass DIGESTS_JSON directly to jq ***
             digest="$(echo "${DIGESTS_JSON}" | jq -r --arg key "${platform_key_for_lookup}" '.[$key]')"
-
-            # The --arg syntax effectively creates a temporary variable inside jq for $key.
-            # This is safer than relying on env.VARIABLE or direct shell interpolation for complex values.
 
             if [ "$digest" == "null" ] || [ -z "$digest" ]; then
               echo "Error: Digest not found for platform ${platform_original} (looked for key ${platform_key_for_lookup} in DIGESTS_JSON: $DIGESTS_JSON)"
@@ -447,7 +442,6 @@ jobs:
             fi
 
             arch_for_podman="${platform_original#linux/}"
-            echo "Adding to manifest: ${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest} for os: linux, arch: ${arch_for_podman} (original platform: ${platform_original})"
             podman manifest add "${MANIFEST}" "docker://${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest}" --os linux --arch "${arch_for_podman}"
           done
 
