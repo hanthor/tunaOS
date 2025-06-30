@@ -9,6 +9,7 @@ on:
       - F42
   push:
     branches:
+      
       - a10s
       - a10
       - c10s
