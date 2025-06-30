@@ -11,7 +11,7 @@ on:
         description: "The description of the image to build"
         required: false
         type: string
-        default: "Yellowfin, built on CentOS Stream with bootc"
+        default: "Albacore, built on CentOS Stream with bootc"
       flavor:
         description: "The flavor of the image to build"
         required: false
@@ -87,6 +87,7 @@ jobs:
             MATRIX="$(echo "${MATRIX}" | jq ".include += [{\"platform\": \"${platform}\", \"safeplatform\": \"${safeplatform}\"}]")"
           done
           echo "matrix=$(echo "${MATRIX}" | jq -c '.')" >> $GITHUB_OUTPUT
+        
 
   build_push:
     name: Build and push image
@@ -114,7 +115,7 @@ jobs:
 
       - name: Mount BTRFS for podman storage
         if: ${{ matrix.platform != 'linux/arm64' && inputs.cleanup_runner }}
-        uses: ublue-os/container-storage-action@851e47db39f73b8ab592692f7e89185c9e6cf804
+        uses: ublue-os/container-storage-action@main
 
       - name: Setup Just
         uses: extractions/setup-just@e33e0265a09d6d736e2ee1e0eb685ef1de4669ff # v3
@@ -356,14 +357,14 @@ jobs:
             io.artifacthub.package.readme-url=https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/refs/heads/main/README.md
             org.opencontainers.image.created=${{ steps.date.outputs.date }}
             org.opencontainers.image.description=${{ env.IMAGE_DESC }}
-            org.opencontainers.image.documentation=https://docs.projectbluefin.io
+            org.opencontainers.image.documentation=https://docs.projectalbacore.io
             org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/blob/main/Containerfile
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
-            org.opencontainers.image.url=https://projectbluefin.io
+            org.opencontainers.image.url=https://projectalbacore.io
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.version=${{ env.MAJOR_VERSION }}
             io.artifacthub.package.deprecated=false
-            io.artifacthub.package.keywords=bootc,centos,yellowfin,ublue,universal-blue
+            io.artifacthub.package.keywords=bootc,centos,albacore,ublue,universal-blue
             io.artifacthub.package.license=Apache-2.0
             io.artifacthub.package.logo-url=https://avatars.githubusercontent.com/u/120078124?s=200&v=4
             io.artifacthub.package.maintainers=[{\"name\":\"tulilirockz\",\"email\":\"tulilirockz@outlook.com\"},{\"name\":\"castrojo\",\"email\":\"jorge.castro@gmail.com\"}]
@@ -388,7 +389,7 @@ jobs:
           DIGESTS_JSON="$(jq -n '{}')"
           for digest_file in /tmp/artifacts/*.txt; do
             FILENAME_ONLY="$(basename "${digest_file}")"
-            # Extract the safeplatform key from the filename (e.g., "bluefin-linux-amd64-v2.txt" -> "linux-amd64-v2")
+            # Extract the safeplatform key from the filename (e.g., "albacore-linux-amd64-v2.txt" -> "linux-amd64-v2")
             # Remove prefix "${IMAGE_NAME}-"
             KEY_PART="${FILENAME_ONLY#${IMAGE_NAME}-}"
             # Remove suffix ".txt"
@@ -432,14 +433,8 @@ jobs:
 
           for platform_original in "${platforms[@]}"; do
             platform_key_for_lookup="${platform_original//\//-}"
-            echo "DEBUG: Inside loop: platform_original='${platform_original}'"
-            echo "DEBUG: Inside loop: platform_key_for_lookup='${platform_key_for_lookup}' (length: ${#platform_key_for_lookup})"
 
-            # *** KEY CHANGE HERE: Pass DIGESTS_JSON directly to jq ***
             digest="$(echo "${DIGESTS_JSON}" | jq -r --arg key "${platform_key_for_lookup}" '.[$key]')"
-
-            # The --arg syntax effectively creates a temporary variable inside jq for $key.
-            # This is safer than relying on env.VARIABLE or direct shell interpolation for complex values.
 
             if [ "$digest" == "null" ] || [ -z "$digest" ]; then
               echo "Error: Digest not found for platform ${platform_original} (looked for key ${platform_key_for_lookup} in DIGESTS_JSON: $DIGESTS_JSON)"
@@ -447,7 +442,6 @@ jobs:
             fi
 
             arch_for_podman="${platform_original#linux/}"
-            echo "Adding to manifest: ${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest} for os: linux, arch: ${arch_for_podman} (original platform: ${platform_original})"
             podman manifest add "${MANIFEST}" "docker://${IMAGE_REGISTRY}/${IMAGE_NAME}@${digest}" --os linux --arch "${arch_for_podman}"
           done
 
@@ -533,4 +527,3 @@ jobs:
           podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${MAJOR_VERSION}"
           podman tag "${IMAGE_REGISTRY}/${IMAGE_NAME}:${DEFAULT_TAG}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${REFS}"
           echo "tag=${IMAGE_REGISTRY}/${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
-
