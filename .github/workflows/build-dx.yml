@@ -4,14 +4,12 @@ on:
   pull_request:
     branches:
       - albacore
-      - albacore-server
       - yellowfin
       - bluefin-tuna
       - main
   push:
       branches:
       - albacore
-      - albacore-server
       - yellowfin
       - bluefin-tuna
       - main
