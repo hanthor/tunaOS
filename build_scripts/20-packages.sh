@@ -7,7 +7,7 @@ dnf -y remove \
 
 dnf -y install \
 	-x gnome-extensions-app \
-	almalinux-wallpapers \
+	almalinux-backgrounds \
 	almalinux-logos \
 	system-reinstall-bootc \
 	gnome-disk-utility \
