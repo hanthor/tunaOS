@@ -255,29 +255,6 @@ rechunk_cleanup:
     fi
     just sudoif podman volume rm cache_ostree || echo "Volume 'cache_ostree' not found."
 
-sync_image SID DID=SID reverse='false':
-    #!/usr/bin/env bash
-    set -eoux pipefail
-
-    if [[ "{{ reverse }}" == 'true' ]]; then
-        if [[ -z "${SUDO_USER:-}" ]] || ! podman image exists "{{ SID }}"; then
-            exit 0
-        fi
-        TARGET_UID=$(id -u "${SUDO_USER}")
-        SOURCE_EP="root@localhost::{{ SID }}"
-        DEST_EP="${TARGET_UID}@localhost::{{ DID }}"
-        just sudoif -i -u "${SUDO_USER}" podman image rm "{{ DID }}" >/dev/null 2>&1 || true
-        podman image scp "${SOURCE_EP}" "${DEST_EP}"
-        podman image rm "{{ SID }}"
-    else
-        if ! podman image exists "{{ SID }}"; then
-            exit 1
-        fi
-        SOURCE_EP="${UID}@localhost::{{ SID }}"
-        DEST_EP="root@localhost::{{ DID }}"
-
-# Build a bootc bootable image using Bootc Image Builder (BIB)
-# Converts a container image to a bootable image
 # Parameters:
 #   target_image: The name of the image to build (ex. localhost/fedora)
 #   tag: The tag of the image to build (ex. latest)
@@ -285,7 +262,7 @@ sync_image SID DID=SID reverse='false':
 #   config: The configuration file to use for the build (default: image.toml)
 
 # Example: just _rebuild-bib localhost/fedora latest qcow2 image.toml
-_build-bib $target_image $tag $type $config: (sync_image target_image tag)
+_build-bib $target_image $tag $type $config:
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -491,7 +468,7 @@ lint:
 format:
     /usr/bin/find . -iname "*.sh" -type f -exec shfmt --write "{}" ';'
 
-run-bootc-libvirt $target_image=("localhost/" + image_name) $tag=default_tag $image_name=image_name: (sync_image target_image tag)
+run-bootc-libvirt $target_image=("localhost/" + image_name) $tag=default_tag $image_name=image_name:
     #!/usr/bin/env bash
     set -euo pipefail
 
