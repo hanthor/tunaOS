@@ -7,6 +7,8 @@ dnf -y remove \
 
 dnf -y install \
 	-x gnome-extensions-app \
+	almalinux-wallpapers \
+	almalinux-logos \
 	system-reinstall-bootc \
 	gnome-disk-utility \
 	distrobox \
@@ -23,7 +25,7 @@ dnf -y install \
 	jetbrains-mono-fonts-all \
 	buildah \
 	btrfs-progs \
-  xhost
+    xhost
 
 # Everything that depends on external repositories should be after this.
 # Make sure to set them as disabled and enable them only when you are going to use their packages.
