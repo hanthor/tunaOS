@@ -26,8 +26,8 @@ dnf -y install --enablerepo=epel-multimedia \
 
 dnf swap -y coreutils-single coreutils
 
-# # Gnome 48 Backport
-# dnf -y copr enable @centoshyperscale/c10s-gnome-48
+# Gnome 48 Backport
+dnf -y copr enable @centoshyperscale/c10s-gnome-48
 # dnf -y copr enable jreilly1821/packages
 
 
