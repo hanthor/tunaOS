@@ -1,0 +1,4 @@
+[install]
+root-fs-type = "btrfs"
+kargs = ["rd.luks.options=discard,tpm2-device=auto", "quiet", "splash"]
+block = ["tpm2-luks", "direct"]
