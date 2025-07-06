@@ -2,12 +2,19 @@
 
 set -xeuo pipefail
 
+CONTEXT_PATH="$(realpath "$(dirname "$0")/..")" # should return /run/context
+BUILD_SCRIPTS_PATH="$(realpath "$(dirname "$0")")"
+MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
+SCRIPTS_PATH="$(realpath "$(dirname "$0")/scripts")"
+export SCRIPTS_PATH
+export MAJOR_VERSION_NUMBER
+
 dnf -y remove \
 	setroubleshoot
 
 dnf -y install \
 	-x gnome-extensions-app \
-	almalinux-wallpapers \
+	almalinux-backgrounds \
 	almalinux-logos \
 	system-reinstall-bootc \
 	gnome-disk-utility \
@@ -91,7 +98,7 @@ FEDORA_MAJOR_SPOOF=42
 
  # GNOME 48: EPEL version of blur-my-shell is incompatible
 dnf -y remove gnome-shell-extension-blur-my-shell
- 
+
 # GNOME 48: force update xdg-desktop-portal
 # dnf -y install \
 # 	xdg-desktop-portal \
