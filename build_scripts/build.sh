@@ -4,7 +4,6 @@
 # Thus leading to silent failures
 
 set -eo pipefail
-printf "::group:: === build ===\n"
 
 # Do not rely on any of these scripts existing in a specific path
 # Make the names as descriptive as possible and everything that uses dnf for package installation/removal should have `packages-` as a prefix.
@@ -44,24 +43,22 @@ copy_systemfiles_for() {
 
 CUSTOM_NAME="base"
 copy_systemfiles_for ../files
-# run_buildscripts_for ..
+run_buildscripts_for ..
 CUSTOM_NAME=""
 
-# copy_systemfiles_for "$(arch)"
-# run_buildscripts_for "$(arch)"
+copy_systemfiles_for "$(arch)"
+run_buildscripts_for "$(arch)"
 
-# if [ "$ENABLE_DX" == "1" ]; then
-# 	copy_systemfiles_for dx
-# 	run_buildscripts_for dx
-# 	copy_systemfiles_for "$(arch)-dx"
-# 	run_buildscripts_for "$(arch)/dx"
-# fi
+if [ "$ENABLE_DX" == "1" ]; then
+	copy_systemfiles_for dx
+	run_buildscripts_for dx
+	copy_systemfiles_for "$(arch)-dx"
+	run_buildscripts_for "$(arch)/dx"
+fi
 
-# if [ "$ENABLE_GDX" == "1" ]; then
-# 	copy_systemfiles_for gdx
-# 	run_buildscripts_for gdx
-# 	copy_systemfiles_for "$(arch)-gdx"
-# 	run_buildscripts_for "$(arch)/gdx"
-# fi
-
-printf "::endgroup::\n"
+if [ "$ENABLE_GDX" == "1" ]; then
+	copy_systemfiles_for gdx
+	run_buildscripts_for gdx
+	copy_systemfiles_for "$(arch)-gdx"
+	run_buildscripts_for "$(arch)/gdx"
+fi
