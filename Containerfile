@@ -19,6 +19,13 @@ RUN --mount=type=tmpfs,dst=/opt \
     --mount=type=tmpfs,dst=/var \
     --mount=type=tmpfs,dst=/boot \
     --mount=type=bind,from=context,source=/,target=/run/context \
+    /run/context/build_scripts/build.sh
+
+RUN --mount=type=tmpfs,dst=/opt \
+    --mount=type=tmpfs,dst=/tmp \
+    --mount=type=tmpfs,dst=/var \
+    --mount=type=tmpfs,dst=/boot \
+    --mount=type=bind,from=context,source=/,target=/run/context \
     /run/context/build_scripts/00-workarounds.sh
 
 RUN --mount=type=tmpfs,dst=/opt \
