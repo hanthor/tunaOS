@@ -118,6 +118,7 @@ build $target_image=image_name $tag=default_tag $dx="0" $gdx="0" $platform="linu
         --pull=newer \
         --tag "${target_image}:${tag}" \
         .
+    just rechunk
 
 # Default variables mirroring the GitHub Action inputs
 # Override from the command line, e.g., just --set ref 'your/image'

@@ -42,10 +42,10 @@ copy_systemfiles_for() {
 	printf "::endgroup::\n"
 }
 
-CUSTOM_NAME="base"
-copy_systemfiles_for ../files
-run_buildscripts_for ..
-CUSTOM_NAME=""
+# CUSTOM_NAME="base"
+# copy_systemfiles_for ../files
+# run_buildscripts_for ..
+# CUSTOM_NAME=""
 
 copy_systemfiles_for "$(arch)"
 run_buildscripts_for "$(arch)"
