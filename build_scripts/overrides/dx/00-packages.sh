@@ -23,6 +23,7 @@ dnf -y --enablerepo copr:copr.fedorainfracloud.org:ublue-os:packages install \
   libvirt \
   libvirt-daemon-kvm \
   libvirt-nss \
+  cockpit-machines \
   virt-install \
   ublue-os-libvirt-workarounds
 

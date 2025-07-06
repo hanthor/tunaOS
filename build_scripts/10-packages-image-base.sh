@@ -2,6 +2,13 @@
 
 set -xeuo pipefail
 
+CONTEXT_PATH="$(realpath "$(dirname "$0")/..")" # should return /run/context
+BUILD_SCRIPTS_PATH="$(realpath "$(dirname "$0")")"
+MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
+SCRIPTS_PATH="$(realpath "$(dirname "$0")/scripts")"
+export SCRIPTS_PATH
+export MAJOR_VERSION_NUMBER
+
 # This is the base for a minimal GNOME system on CentOS Stream.
 
 # This thing slows down downloads A LOT for no reason
@@ -11,7 +18,6 @@ set -xeuo pipefail
 # dnf config-manager --set-disabled "centos-hyperscale,centos-hyperscale-kernel"
 # dnf --enablerepo="centos-hyperscale" --enablerepo="centos-hyperscale-kernel" -y update kernel
 
-# The base images take super long to update, this just updates manually for now
 dnf -y install 'dnf-command(versionlock)'
 dnf versionlock add kernel kernel-devel kernel-devel-matched kernel-core kernel-modules kernel-modules-core kernel-modules-extra kernel-uki-virt
 
@@ -22,12 +28,22 @@ dnf config-manager --set-enabled crb
 dnf config-manager --add-repo=https://negativo17.org/repos/epel-multimedia.repo
 dnf config-manager --set-disabled epel-multimedia
 dnf -y install --enablerepo=epel-multimedia \
-	ffmpeg libavcodec @multimedia gstreamer1-plugins-{bad-free,bad-free-libs,good,base} lame{,-libs} libjxl ffmpegthumbnailer
+	ffmpeg \
+	libavcodec \
+	@multimedia \
+	gstreamer1-plugins-bad-free \
+	gstreamer1-plugins-bad-free-libs \
+	gstreamer1-plugins-good \
+	gstreamer1-plugins-base \
+	lame \
+	lame-libs \
+	libjxl \
+	ffmpegthumbnailer
 
 dnf swap -y coreutils-single coreutils
 
 # Gnome 48 Backport
-dnf -y copr enable @centoshyperscale/c10s-gnome-48
+dnf -y copr enable jreilly1821/c10s-gnome-48
 # dnf -y copr enable jreilly1821/packages
 
 
@@ -82,8 +98,12 @@ dnf -y install \
 	plymouth \
 	plymouth-system-theme \
 	fwupd \
-	systemd-{resolved,container,oomd} \
-	libcamera{,-{v4l2,gstreamer,tools}}
+	systemd-resolved \
+	systemd-container \
+	systemd-oomd \
+	libcamera-v4l2 \
+	libcamera-gstreamer \
+	libcamera-tools
 
 # This package adds "[systemd] Failed Units: *" to the bashrc startup
 dnf -y remove console-login-helper-messages

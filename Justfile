@@ -1,7 +1,7 @@
 export repo_organization := env("GITHUB_REPOSITORY_OWNER", "ublue-os")
 export image_name := env("IMAGE_NAME", "yellowfin")
 export centos_version := env("CENTOS_VERSION", "10")
-export default_tag := env("DEFAULT_TAG", "a10-server")
+export default_tag := env("DEFAULT_TAG", "latest")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
 
 alias build-vm := build-qcow2
@@ -122,7 +122,7 @@ build $target_image=image_name $tag=default_tag $dx="0" $gdx="0" $platform="linu
 # Default variables mirroring the GitHub Action inputs
 # Override from the command line, e.g., just --set ref 'your/image'
 
-ref := 'localhost/' + image_name + ':' + default_tag
+ref := 'localhost/' + 'yellowfin' + '-' + 'dx' + ':' + default_tag
 prev_ref := ''
 clear_plan := ''
 prev_ref_fail := ''
