@@ -1,4 +1,4 @@
-export repo_organization := env("GITHUB_REPOSITORY_OWNER", "ublue-os")
+export repo_organization := env("GITHUB_REPOSITORY_OWNER", "hanthor")
 export image_name := env("IMAGE_NAME", "yellowfin")
 export centos_version := env("CENTOS_VERSION", "10")
 export default_tag := env("DEFAULT_TAG", "latest")
@@ -80,7 +80,7 @@ sudoif command *args:
 # DX:
 #   Developer Experience (DX) is a feature that allows you to install the latest developer tools for your system.
 #   Packages include VScode, Docker, Distrobox, and more.
-# GDX: https://docs.projectyellowfin.io/gdx/
+# GDX: https://docs.projectbluefin.io/gdx/
 #   GPU Developer Experience (GDX) creates a base as an AI and Graphics platform.
 #   Installs Nvidia drivers, CUDA, and other tools.
 #
