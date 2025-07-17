@@ -4,6 +4,7 @@ export centos_version := env("CENTOS_VERSION", "10")
 export default_tag := env("DEFAULT_TAG", "latest")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
 builddir := shell('mkdir -p $1 && echo $1', absolute_path(env('BUILD', 'output')))
+
 alias build-vm := build-qcow2
 alias rebuild-vm := rebuild-qcow2
 alias run-vm := run-vm-qcow2
@@ -94,9 +95,8 @@ sudoif command *args:
 #
 # This will build an image 'yellowfin:a10-server' with DX and GDX enabled.
 #
-
 # Build the image using the specified parameters
-#
+
 local-build $target_image=image_name $tag=default_tag $dx="0" $gdx="0" $platform="linux/amd64":
     just build $target_image $tag $dx $gdx $platform
     just rechunk $target_image $tag $dx $gdx $platform
