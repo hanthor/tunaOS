@@ -85,6 +85,11 @@ build $target_image=image_name $tag=default_tag $dx="0" $gdx="0" $platform="linu
     #!/usr/bin/env bash
     set -euo pipefail
 
+    # Handle empty tag parameter - use default_tag if tag is empty
+    if [[ -z "${tag}" ]]; then
+        tag="${default_tag}"
+    fi
+
     # Get Version
     ver="${tag}-${centos_version}.$(date +%Y%m%d)"
 
