@@ -1,0 +1,59 @@
+# TunaOS Build Configuration
+# This file centralizes build configuration for different branches and variants
+
+# Branch configurations
+branches:
+  main:
+    major_version: "stream10"
+    default_tag: "stream10"
+    platforms: "linux/arm64,linux/amd64"
+    description: "Bluefin LTS"
+  
+  albacore:
+    major_version: "10"
+    default_tag: "10" 
+    platforms: "linux/arm64,linux/amd64,linux/amd64/v2"
+    description: "🐟 Based on AlmaLinux 10.0 Almalinux"
+  
+  albacore-server:
+    major_version: "10"
+    default_tag: "10"
+    platforms: "linux/arm64,linux/amd64,linux/amd64/v2"
+    description: "🐟 Server variant of Albacore"
+  
+  yellowfin:
+    major_version: "10s"
+    default_tag: "10s"
+    platforms: "linux/arm64,linux/amd64,linux/amd64/v2"
+    description: "🐠 Based on AlmaLinux Kitten 10"
+  
+  bluefin-tuna:
+    major_version: "42"
+    default_tag: "F42"
+    platforms: "linux/arm64,linux/amd64"
+    description: "🎣 Based on Fedora 42"
+
+# Build variants
+variants:
+  regular:
+    suffix: ""
+    dx: "0"
+    gdx: "0"
+  
+  dx:
+    suffix: "-dx"
+    dx: "1"
+    gdx: "0"
+  
+  gdx:
+    suffix: "-gdx"
+    dx: "0"
+    gdx: "1"
+
+# Default settings
+defaults:
+  registry: "ghcr.io"
+  timeout_minutes: 60
+  sbom: true
+  rechunk: true
+  sign: true
