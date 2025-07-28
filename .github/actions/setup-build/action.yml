@@ -1,0 +1,37 @@
+name: 'Setup Build Environment'
+description: 'Common setup steps for TunaOS builds'
+
+inputs:
+  cleanup_runner:
+    description: 'Clean up runner storage'
+    required: false
+    default: 'true'
+    type: boolean
+  platform:
+    description: 'Target platform'
+    required: true
+    type: string
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install dependencies
+      if: contains(inputs.platform, 'linux/arm64')
+      shell: bash
+      run: |
+        sudo apt update -y
+        sudo apt install -y podman
+
+    - name: Checkout
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+    - name: Mount BTRFS for podman storage
+      if: ${{ inputs.platform != 'linux/arm64' && fromJSON(inputs.cleanup_runner) }}
+      uses: ublue-os/container-storage-action@main
+
+    - name: Setup Just
+      uses: extractions/setup-just@e33e0265a09d6d736e2ee1e0eb685ef1de4669ff # v3
+
+    - name: Check Just Syntax
+      shell: bash
+      run: just check

@@ -1,3 +1,7 @@
+# TunaOS Build System Justfile
+#
+# Common environment variables:
+
 export repo_organization := env("GITHUB_REPOSITORY_OWNER", "hanthor")
 export image_name := env("IMAGE_NAME", "yellowfin")
 export centos_version := env("CENTOS_VERSION", "10")
@@ -5,8 +9,9 @@ export default_tag := env("DEFAULT_TAG", "latest")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
 builddir := shell('mkdir -p $1 && echo $1', absolute_path(env('BUILD', 'output')))
 
+# Common aliases for frequently used commands
+
 alias build-vm := build-qcow2
-alias rebuild-vm := rebuild-qcow2
 alias run-vm := run-vm-qcow2
 
 [private]
@@ -35,22 +40,14 @@ fix:
     echo "Checking syntax: Justfile"
     just --unstable --fmt -f Justfile || { exit 1; }
 
-# Clean Repo
+# Clean build outputs and temporary files
 [group('Utility')]
 clean:
     #!/usr/bin/env bash
     set -eoux pipefail
     touch _build
-    find *_build* -exec rm -rf {} \;
-    rm -f previous.manifest.json
-    rm -f changelog.md
-    rm -f output.env
-
-# Sudo Clean Repo
-[group('Utility')]
-[private]
-sudo-clean:
-    just clean
+    find *_build* -exec rm -rf {} \; 2>/dev/null || true
+    rm -f previous.manifest.json changelog.md output.env
 
 # sudoif bash function
 [group('Utility')]
@@ -70,39 +67,23 @@ sudoif command *args:
     }
     {{ command }} {{ args }}
 
-# This Justfile recipe builds a container image using Podman.
+# Build container image with optional DX/GDX features
 #
-# Arguments:
-#   $target_image - The tag you want to apply to the image (default: yellowfin).
-#   $tag - The tag for the image (default: lts).
-#   $dx - Enable DX (default: "0").
-#   $gdx - Enable GDX (default: "0").
+# Parameters:
+#   target_image: Image name (default: yellowfin)
+#   tag: Image tag (default: latest)
+#   dx: Enable Developer Experience ("0" or "1")
+#   gdx: Enable GPU Developer Experience ("0" or "1")
+#   platform: Target platform (default: linux/amd64)
 #
-# DX:
-#   Developer Experience (DX) is a feature that allows you to install the latest developer tools for your system.
-#   Packages include VScode, Docker, Distrobox, and more.
-# GDX: https://docs.projectbluefin.io/gdx/
-#   GPU Developer Experience (GDX) creates a base as an AI and Graphics platform.
-#   Installs Nvidia drivers, CUDA, and other tools.
-#
-# The script constructs the version string using the tag and the current date.
-# If the git working directory is clean, it also includes the short SHA of the current HEAD.
-#
-# just build $target_image $tag $dx $gdx
-#
-# Example usage:
-#   just build yellowfin lts 1 0
-#
-# This will build an image 'yellowfin:a10-server' with DX and GDX enabled.
-#
-# Build the image using the specified parameters
+# Examples:
+#   just build                           # Basic build
+#   just build yellowfin latest 1 0     # Build with DX enabled
 
-local-build $target_image=image_name $tag=default_tag $dx="0" $gdx="0" $platform="linux/amd64":
-    just build $target_image $tag $dx $gdx $platform
-    just rechunk $target_image $tag $dx $gdx $platform
-
+# just local-build                     # Build and rechunk locally
 build $target_image=image_name $tag=default_tag $dx="0" $gdx="0" $platform="linux/amd64":
     #!/usr/bin/env bash
+    set -euo pipefail
 
     # Get Version
     ver="${tag}-${centos_version}.$(date +%Y%m%d)"
@@ -124,10 +105,15 @@ build $target_image=image_name $tag=default_tag $dx="0" $gdx="0" $platform="linu
         --tag "${target_image}:${tag}" \
         .
 
-# HHD-Dev Rechunk Image
+# Build locally with rechunking (for testing)
+local-build $target_image=image_name $tag=default_tag $dx="0" $gdx="0" $platform="linux/amd64":
+    just build $target_image $tag $dx $gdx $platform
+    just hhd-rechunk $target_image $tag
+
+# Rechunk image using HHD-Dev rechunker (for advanced users)
 hhd-rechunk $image_name="" $default_tag="":
     #!/usr/bin/env bash
-    set ${CI:+-x} -eou pipefail
+    set -euo pipefail
 
     # Labels
     VERSION="$(podman inspect localhost/$image_name:$default_tag)"
@@ -235,29 +221,25 @@ _build-bib $target_image $tag $type $config:
 # Example: just _rebuild-bib localhost/fedora latest qcow2 image.toml
 _rebuild-bib $target_image $tag $type $config: (build target_image tag) && (_build-bib target_image tag type config)
 
-# Build a QCOW2 virtual machine image
-[group('Build Virtal Machine Image')]
-build-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "qcow2" "image.toml")
+# Build virtual machine images (qcow2, raw, iso)
+[group('Virtual Machine Images')]
+build-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: (_build-bib target_image tag "qcow2" "image.toml")
 
-# Build a RAW virtual machine image
-[group('Build Virtal Machine Image')]
-build-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "raw" "image.toml")
+[group('Virtual Machine Images')]
+build-raw $target_image=("localhost/" + image_name) $tag=default_tag: (_build-bib target_image tag "raw" "image.toml")
 
-# Build an ISO virtual machine image
-[group('Build Virtal Machine Image')]
-build-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "iso" "iso.toml")
+[group('Virtual Machine Images')]
+build-iso $target_image=("localhost/" + image_name) $tag=default_tag: (_build-bib target_image tag "iso" "iso.toml")
 
-# Rebuild a QCOW2 virtual machine image
-[group('Build Virtal Machine Image')]
-rebuild-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "qcow2" "image.toml")
+# Rebuild virtual machine images (builds container first, then VM image)
+[group('Virtual Machine Images')]
+rebuild-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: (build target_image tag) && (_build-bib target_image tag "qcow2" "image.toml")
 
-# Rebuild a RAW virtual machine image
-[group('Build Virtal Machine Image')]
-rebuild-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "raw" "image.toml")
+[group('Virtual Machine Images')]
+rebuild-raw $target_image=("localhost/" + image_name) $tag=default_tag: (build target_image tag) && (_build-bib target_image tag "raw" "image.toml")
 
-# Rebuild an ISO virtual machine image
-[group('Build Virtal Machine Image')]
-rebuild-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "iso" "iso.toml")
+[group('Virtual Machine Images')]
+rebuild-iso $target_image=("localhost/" + image_name) $tag=default_tag: (build target_image tag) && (_build-bib target_image tag "iso" "iso.toml")
 
 # Run a virtual machine with the specified image type and configuration
 _run-vm $target_image $tag $type $config:
@@ -302,29 +284,26 @@ _run-vm $target_image $tag $type $config:
     xdg-open http://localhost:${port}
     fg "%podman"
 
-# Run a virtual machine from a QCOW2 image
-[group('Run Virtal Machine')]
-run-vm-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "qcow2" "image.toml")
+# Run virtual machine from built images
+[group('Virtual Machine')]
+run-vm-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: (_run-vm target_image tag "qcow2" "image.toml")
 
-# Run a virtual machine from a RAW image
-[group('Run Virtal Machine')]
-run-vm-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "raw" "image.toml")
+[group('Virtual Machine')]
+run-vm-raw $target_image=("localhost/" + image_name) $tag=default_tag: (_run-vm target_image tag "raw" "image.toml")
 
-# Run a virtual machine from an ISO
-[group('Run Virtal Machine')]
-run-vm-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "iso" "iso.toml")
+[group('Virtual Machine')]
+run-vm-iso $target_image=("localhost/" + image_name) $tag=default_tag: (_run-vm target_image tag "iso" "iso.toml")
 
-# Run a virtual machine using systemd-vmspawn
-[group('Run Virtal Machine')]
+# Run VM using systemd-vmspawn (alternative to QEMU)
+[group('Virtual Machine')]
 spawn-vm rebuild="0" type="qcow2" ram="6G":
     #!/usr/bin/env bash
-
     set -euo pipefail
 
-    [ "{{ rebuild }}" -eq 1 ] && echo "Rebuilding the ISO" && just build-vm {{ rebuild }} {{ type }}
+    [ "{{ rebuild }}" -eq 1 ] && echo "Rebuilding the image" && just build-{{ type }} localhost/{{ image_name }} {{ default_tag }}
 
     systemd-vmspawn \
-      -M "achillobator" \
+      -M "yellowfin-vm" \
       --console=gui \
       --cpus=2 \
       --ram=$(echo {{ ram }}| /usr/bin/numfmt --from=iec) \
@@ -332,16 +311,8 @@ spawn-vm rebuild="0" type="qcow2" ram="6G":
       --vsock=false --pass-ssh-key=false \
       -i ./output/**/*.{{ type }}
 
-##########################
-#  'customize-iso-build' #
-##########################
-# Description:
-# Enables the manual customization of the osbuild manifest before running the ISO build
-#
-# Mount the configuration file and output directory
-# Clear the entrypoint to run the custom command
-
-# Run osbuild with the specified parameters
+# Advanced ISO customization (run osbuild manually)
+[group('Advanced')]
 customize-iso-build:
     podman run \
     --rm -it \
@@ -349,7 +320,7 @@ customize-iso-build:
     --pull=newer \
     --net=host \
     --security-opt label=type:unconfined_t \
-    -v $(pwd)/iso.toml \
+    -v $(pwd)/iso.toml:/config.toml:ro \
     -v $(pwd)/output:/output \
     -v /var/lib/containers/storage:/var/lib/containers/storage \
     --entrypoint "" \
