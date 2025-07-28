@@ -131,6 +131,9 @@ jobs:
           FLAVOR: ${{ inputs.flavor }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           PLATFORM: ${{ matrix.platform }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          DEFAULT_TAG: ${{ env.DEFAULT_TAG }}
+          CENTOS_VERSION: ${{ env.MAJOR_VERSION }}
         run: |
           set -x
           just=$(which just)
@@ -144,7 +147,12 @@ jobs:
             ENABLE_DX=1
           fi
 
-          sudo $just build "${IMAGE_NAME}" "${DEFAULT_TAG}" "${ENABLE_DX}" "${ENABLE_GDX}" "${PLATFORM}"
+          sudo env PATH="$PATH" \
+            GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY_OWNER}" \
+            IMAGE_NAME="${IMAGE_NAME}" \
+            DEFAULT_TAG="${DEFAULT_TAG}" \
+            CENTOS_VERSION="${CENTOS_VERSION}" \
+            "$just" build "${IMAGE_NAME}" "${DEFAULT_TAG}" "${ENABLE_DX}" "${ENABLE_GDX}" "${PLATFORM}"
 
       - name: Setup Syft
         id: setup-syft
