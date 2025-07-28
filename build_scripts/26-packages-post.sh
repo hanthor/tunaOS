@@ -2,8 +2,6 @@
 
 set -xeuo pipefail
 
-CONTEXT_PATH="$(realpath "$(dirname "$0")/..")" # should return /run/context
-BUILD_SCRIPTS_PATH="$(realpath "$(dirname "$0")")"
 MAJOR_VERSION_NUMBER="$(sh -c '. /usr/lib/os-release ; echo ${VERSION_ID%.*}')"
 SCRIPTS_PATH="$(realpath "$(dirname "$0")/scripts")"
 export SCRIPTS_PATH
