@@ -37,7 +37,7 @@ EOF
 install -Dm0755 /tmp/fake-uname /tmp/bin/uname
 
 NVIDIA_DRIVER_VERSION="$(rpm -q dkms-nvidia --queryformat="%{VERSION}")"
-PATH=/tmp/bin:$PATH dkms --force install -m nvidia -v $NVIDIA_DRIVER_VERSION -k "$QUALIFIED_KERNEL"
+PATH=/tmp/bin:$PATH dkms --force install -m nvidia -v "$NVIDIA_DRIVER_VERSION" -k "$QUALIFIED_KERNEL"
 cat "/var/lib/dkms/nvidia/$NVIDIA_DRIVER_VERSION/build/make.log" || echo "Expected failure"
 
 cat >/usr/lib/modprobe.d/00-nouveau-blacklist.conf <<EOF
