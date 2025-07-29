@@ -4,7 +4,7 @@
 
 export repo_organization := env("GITHUB_REPOSITORY_OWNER", "hanthor")
 export image_name := env("IMAGE_NAME", "yellowfin")
-export centos_version := env("CENTOS_VERSION", "10")
+export major_version := env("MAJOR_VERSION", "10")
 export default_tag := env("DEFAULT_TAG", "latest")
 export bib_image := env("BIB_IMAGE", "quay.io/centos-bootc/bootc-image-builder:latest")
 builddir := shell('mkdir -p $1 && echo $1', absolute_path(env('BUILD', 'output')))
@@ -91,10 +91,10 @@ build $target_image=image_name $tag=default_tag $dx="0" $gdx="0" $platform="linu
     fi
 
     # Get Version
-    ver="${tag}-${centos_version}.$(date +%Y%m%d)"
+    ver="${tag}-${major_version}.$(date +%Y%m%d)"
 
     BUILD_ARGS=()
-    BUILD_ARGS+=("--build-arg" "MAJOR_VERSION=${centos_version}")
+    BUILD_ARGS+=("--build-arg" "MAJOR_VERSION=${major_version}")
     BUILD_ARGS+=("--build-arg" "IMAGE_NAME=${image_name}")
     BUILD_ARGS+=("--build-arg" "IMAGE_VENDOR=${repo_organization}")
     BUILD_ARGS+=("--build-arg" "ENABLE_DX=${dx}")
