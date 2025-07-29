@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: just-check
+        name: Just syntax check
+        entry: just check
+        language: system
+        pass_filenames: false
