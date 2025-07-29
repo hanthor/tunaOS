@@ -129,19 +129,11 @@ jobs:
         shell: bash
         env:
           FLAVOR: ${{ inputs.flavor }}
-<<<<<<< HEAD
           IMAGE_NAME: ${{ inputs.image_name }}
           PLATFORM: ${{ inputs.platform }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
           DEFAULT_TAG: ${{ inputs.default_tag }}
           MAJOR_VERSION: ${{ inputs.major-version }}
-=======
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          PLATFORM: ${{ matrix.platform }}
-          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
-          DEFAULT_TAG: ${{ env.DEFAULT_TAG }}
-          CENTOS_VERSION: ${{ env.MAJOR_VERSION }}
->>>>>>> origin/yellowfin
         run: |
           set -x
           just=$(which just)
@@ -159,11 +151,7 @@ jobs:
             GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY_OWNER}" \
             IMAGE_NAME="${IMAGE_NAME}" \
             DEFAULT_TAG="${DEFAULT_TAG}" \
-<<<<<<< HEAD
             MAJOR_VERSION="${MAJOR_VERSION}" \
-=======
-            CENTOS_VERSION="${CENTOS_VERSION}" \
->>>>>>> origin/yellowfin
             "$just" build "${IMAGE_NAME}" "${DEFAULT_TAG}" "${ENABLE_DX}" "${ENABLE_GDX}" "${PLATFORM}"
 
       - name: Setup Syft
