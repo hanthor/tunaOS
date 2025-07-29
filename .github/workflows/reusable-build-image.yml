@@ -11,7 +11,7 @@ on:
         description: "The description of the image to build"
         required: false
         type: string
-        default: "Albacore, built on CentOS Stream with bootc"
+        default: "Albacore, built on MAJOR Stream with bootc"
       flavor:
         description: "The flavor of the image to build"
         required: false
@@ -23,7 +23,7 @@ on:
         type: string
         default: "linux/amd64,linux/arm64"
       major-version:
-        description: "The version of CentOS to build the image on"
+        description: "The version of MAJOR to build the image on"
         required: false
         type: string
         default: "10"
@@ -129,11 +129,11 @@ jobs:
         shell: bash
         env:
           FLAVOR: ${{ inputs.flavor }}
-          IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          PLATFORM: ${{ matrix.platform }}
+          IMAGE_NAME: ${{ inputs.image_name }}
+          PLATFORM: ${{ inputs.platform }}
           GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
-          DEFAULT_TAG: ${{ env.DEFAULT_TAG }}
-          CENTOS_VERSION: ${{ env.MAJOR_VERSION }}
+          DEFAULT_TAG: ${{ inputs.default_tag }}
+          MAJOR_VERSION: ${{ inputs.major-version }}
         run: |
           set -x
           just=$(which just)
@@ -151,7 +151,7 @@ jobs:
             GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY_OWNER}" \
             IMAGE_NAME="${IMAGE_NAME}" \
             DEFAULT_TAG="${DEFAULT_TAG}" \
-            CENTOS_VERSION="${CENTOS_VERSION}" \
+            MAJOR_VERSION="${MAJOR_VERSION}" \
             "$just" build "${IMAGE_NAME}" "${DEFAULT_TAG}" "${ENABLE_DX}" "${ENABLE_GDX}" "${PLATFORM}"
 
       - name: Setup Syft
@@ -372,7 +372,7 @@ jobs:
             org.opencontainers.image.vendor=${{ github.repository_owner }}
             org.opencontainers.image.version=${{ env.MAJOR_VERSION }}
             io.artifacthub.package.deprecated=false
-            io.artifacthub.package.keywords=bootc,centos,albacore,ublue,universal-blue
+            io.artifacthub.package.keywords=bootc,MAJOR,albacore,ublue,universal-blue
             io.artifacthub.package.license=Apache-2.0
             io.artifacthub.package.logo-url=https://avatars.githubusercontent.com/u/120078124?s=200&v=4
             io.artifacthub.package.maintainers=[{\"name\":\"tulilirockz\",\"email\":\"tulilirockz@outlook.com\"},{\"name\":\"castrojo\",\"email\":\"jorge.castro@gmail.com\"}]
