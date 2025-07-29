@@ -45,7 +45,7 @@ jobs:
       - name: Checkout for config
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         
-      - name: Generate build matrix
+            - name: Generate build matrix
         id: set-matrix
         run: |
           # Determine which variants to build
@@ -62,7 +62,10 @@ jobs:
           fi
           
           # Determine branch configuration
+          # FIX 1: Sanitize the branch name by replacing '/' with '-'
           BRANCH="${{ github.ref_name }}"
+          BRANCH="${BRANCH//\//-}" 
+          
           case "$BRANCH" in
             main)
               MAJOR_VERSION="stream10"
@@ -124,6 +127,36 @@ jobs:
                 GDX="1"
                 ;;
             esac
+            
+            # FIX 2: Correct the logic for IMAGE_NAME and DEFAULT_TAG
+            local_image_name=""
+            local_default_tag=""
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              local_image_name="pr-${{ github.event.pull_request.number }}${VARIANT_SUFFIX}"
+              local_default_tag="pr-${{ github.event.pull_request.number }}"
+            else
+              local_image_name="${BRANCH}${VARIANT_SUFFIX}"
+              local_default_tag="$DEFAULT_TAG"
+            fi
+            
+            # Add to matrix
+            MATRIX="$(echo "${MATRIX}" | jq ".include += [{
+              \"variant\": \"${variant}\",
+              \"image_name\": \"${local_image_name}\",
+              \"major_version\": \"${MAJOR_VERSION}\",
+              \"default_tag\": \"${local_default_tag}\",
+              \"platforms\": \"${PLATFORMS}\",
+              \"description\": \"${DESCRIPTION}\",
+              \"dx\": \"${DX}\",
+              \"gdx\": \"${GDX}\",
+              \"rechunk\": ${{ github.event_name != 'pull_request' }},
+              \"sbom\": ${{ github.event_name != 'pull_request' }},
+              \"publish\": ${{ github.event_name != 'pull_request' }}
+            }]")"
+          done
+          
+          echo "matrix=$(echo "${MATRIX}" | jq -c '.')" >> $GITHUB_OUTPUT
+
             
             # Determine image name
             if [[ "${{ github.event_name }}" == "pull_request" ]]; then
