@@ -115,7 +115,7 @@ jobs:
 
       - name: Mount BTRFS for podman storage
         if: ${{ matrix.platform != 'linux/arm64' && inputs.cleanup_runner }}
-        uses: ublue-os/container-storage-action@main
+        uses: ublue-os/container-storage-action@8e3f8f5368cfce1595269830378c3d7ad0b1673b
 
       - name: Setup Just
         uses: extractions/setup-just@e33e0265a09d6d736e2ee1e0eb685ef1de4669ff # v3
