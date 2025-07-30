@@ -45,7 +45,7 @@ jobs:
       - name: Checkout for config
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         
-            - name: Generate build matrix
+      - name: Generate build matrix
         id: set-matrix
         run: |
           # Determine which variants to build
@@ -69,31 +69,31 @@ jobs:
           case "$BRANCH" in
             main)
               MAJOR_VERSION="stream10"
-              DEFAULT_TAG="stream10"
+              DEFAULT_TAG="latest"
               PLATFORMS="linux/arm64,linux/amd64"
               DESCRIPTION="Bluefin LTS"
               ;;
             albacore)
               MAJOR_VERSION="10"
-              DEFAULT_TAG="10"
+              DEFAULT_TAG="latest"
               PLATFORMS="linux/arm64,linux/amd64,linux/amd64/v2"
               DESCRIPTION="🐟 Based on AlmaLinux 10.0 Almalinux"
               ;;
             albacore-server)
               MAJOR_VERSION="10"
-              DEFAULT_TAG="10"
+              DEFAULT_TAG="latest"
               PLATFORMS="linux/arm64,linux/amd64,linux/amd64/v2"
               DESCRIPTION="🐟 Server variant of Albacore"
               ;;
             yellowfin)
               MAJOR_VERSION="10s"
-              DEFAULT_TAG="10s"
+              DEFAULT_TAG="latest"
               PLATFORMS="linux/arm64,linux/amd64,linux/amd64/v2"
               DESCRIPTION="🐠 Based on AlmaLinux Kitten 10"
               ;;
             bluefin-tuna)
               MAJOR_VERSION="42"
-              DEFAULT_TAG="F42"
+              DEFAULT_TAG="latest"
               PLATFORMS="linux/arm64,linux/amd64"
               DESCRIPTION="🎣 Based on Fedora 42"
               ;;
