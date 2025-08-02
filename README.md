@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🐟 TunaOS
+# Moved to https://github.com/tuna-os/tunaOS
+
+🐟 TunaOS
 ### *A Collection of Atomic Desktop Operating Systems*
 
 *Specialized forks of [Bluefin LTS](https://github.com/ublue-os/bluefin-lts) for different use cases*
